@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Grammar Pro v2.0 - Feature Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header .version {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        
+        .feature-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .feature-icon {
+            font-size: 2.5em;
+        }
+        
+        .feature-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .feature-desc {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #555;
+        }
+        
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #52c41a;
+            font-weight: bold;
+        }
+        
+        .demo-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .demo-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .demo-inputs {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .demo-input-wrapper {
+            position: relative;
+        }
+        
+        .demo-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .demo-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 2px solid #d9d9d9;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        .demo-textarea:focus {
+            outline: none;
+            border-color: #4A90E2;
+        }
+        
+        .demo-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #d9d9d9;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .demo-input:focus {
+            outline: none;
+            border-color: #4A90E2;
+        }
+        
+        .demo-contenteditable {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 2px solid #d9d9d9;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        .demo-contenteditable:focus {
+            outline: none;
+            border-color: #4A90E2;
+        }
+        
+        .floating-button-demo {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.4);
+            cursor: help;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comparison-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .check-mark {
+            color: #52c41a;
+            font-weight: bold;
+        }
+        
+        .cross-mark {
+            color: #ff4d4d;
+            font-weight: bold;
+        }
+        
+        .install-steps {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .install-steps h2 {
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .install-steps ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .install-steps code {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .screenshots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .screenshot {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .screenshot-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #e0e0e0 0%, #f0f0f0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .screenshot-caption {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 AI Grammar Pro</h1>
+            <div class="version">Version 2.0 - Enhanced Edition</div>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon">⭐</div>
+                    <div class="feature-title">Floating AI Button</div>
+                </div>
+                <div class="feature-desc">
+                    A smart floating button appears on every text input, allowing you to invoke AI suggestions anytime with a single click.
+                </div>
+                <ul class="feature-list">
+                    <li>Auto-appears on focus</li>
+                    <li>Smart positioning</li>
+                    <li>Loading animation</li>
+                    <li>One-click invocation</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon">🌐</div>
+                    <div class="feature-title">Universal Support</div>
+                </div>
+                <div class="feature-desc">
+                    Works with all types of editable elements across the web, from simple textboxes to rich text editors.
+                </div>
+                <ul class="feature-list">
+                    <li>Textareas & text inputs</li>
+                    <li>Email & search fields</li>
+                    <li>ContentEditable divs</li>
+                    <li>Dynamic SPA support</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-title">Enhanced Popup</div>
+                </div>
+                <div class="feature-desc">
+                    Redesigned popup with in-line style selection, copy/apply buttons, and modern UI/UX.
+                </div>
+                <ul class="feature-list">
+                    <li>4 writing styles</li>
+                    <li>Copy to clipboard</li>
+                    <li>One-click apply</li>
+                    <li>Smart positioning</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon">🔍</div>
+                    <div class="feature-title">Smart Detection</div>
+                </div>
+                <div class="feature-desc">
+                    MutationObserver technology detects new editable elements dynamically, perfect for modern SPAs.
+                </div>
+                <ul class="feature-list">
+                    <li>Real-time detection</li>
+                    <li>SPA compatible</li>
+                    <li>Gmail, Docs support</li>
+                    <li>Zero refresh needed</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon">✨</div>
+                    <div class="feature-title">Better UX</div>
+                </div>
+                <div class="feature-desc">
+                    Polished interface with smooth animations, toast notifications, and modern design principles.
+                </div>
+                <ul class="feature-list">
+                    <li>Toast notifications</li>
+                    <li>Loading indicators</li>
+                    <li>Smooth animations</li>
+                    <li>Accessible design</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon">🚀</div>
+                    <div class="feature-title">Performance</div>
+                </div>
+                <div class="feature-desc">
+                    Optimized for speed with smart caching, debouncing, and efficient DOM operations.
+                </div>
+                <ul class="feature-list">
+                    <li>WeakSet tracking</li>
+                    <li>Debounced checking</li>
+                    <li>Event delegation</li>
+                    <li>Minimal overhead</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2 class="demo-title">🧪 Try It Out (Demo)</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                Focus on any input below to see where the floating ★ button would appear
+            </p>
+            <div class="demo-inputs">
+                <div class="demo-input-wrapper">
+                    <label class="demo-label">📝 Textarea (Email, Documents)</label>
+                    <textarea class="demo-textarea" placeholder="Start typing here... In the real extension, a ★ button appears in the top-right corner when you focus."></textarea>
+                    <div class="floating-button-demo" title="Floating button appears here">★</div>
+                </div>
+                
+                <div class="demo-input-wrapper">
+                    <label class="demo-label">✉️ Text Input (Forms, Search)</label>
+                    <input type="text" class="demo-input" placeholder="Type here... ★ button appears on focus">
+                    <div class="floating-button-demo" title="Floating button appears here">★</div>
+                </div>
+                
+                <div class="demo-input-wrapper">
+                    <label class="demo-label">📧 Email Input</label>
+                    <input type="email" class="demo-input" placeholder="your@email.com... ★ button appears on focus">
+                    <div class="floating-button-demo" title="Floating button appears here">★</div>
+                </div>
+                
+                <div class="demo-input-wrapper">
+                    <label class="demo-label">🔍 ContentEditable (Rich Text Editors)</label>
+                    <div class="demo-contenteditable" contenteditable="true">
+                        Click to edit this rich text... ★ button appears on focus
+                    </div>
+                    <div class="floating-button-demo" title="Floating button appears here">★</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2 class="demo-title">📊 Version Comparison</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>v1.6</th>
+                        <th>v2.0</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Textarea Support</td>
+                        <td><span class="check-mark">✓</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Text Input Support</td>
+                        <td><span class="check-mark">✓</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>ContentEditable Support</td>
+                        <td><span class="cross-mark">✗</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Email/Search Inputs</td>
+                        <td><span class="cross-mark">✗</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Manual Check Button</td>
+                        <td><span class="cross-mark">✗</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>In-Popup Style Selection</td>
+                        <td><span class="cross-mark">✗</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Copy/Apply Buttons</td>
+                        <td><span class="cross-mark">✗</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Toast Notifications</td>
+                        <td><span class="cross-mark">✗</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>SPA Support</td>
+                        <td><span class="cross-mark">✗</span></td>
+                        <td><span class="check-mark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Modern UI Design</td>
+                        <td>Basic</td>
+                        <td>Enhanced</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="demo-section">
+            <h2 class="demo-title">🖼️ Visual Preview</h2>
+            <div class="screenshots">
+                <div class="screenshot">
+                    <div class="screenshot-placeholder">⭐</div>
+                    <div class="screenshot-caption">Floating Button</div>
+                </div>
+                <div class="screenshot">
+                    <div class="screenshot-placeholder">💬</div>
+                    <div class="screenshot-caption">Enhanced Popup</div>
+                </div>
+                <div class="screenshot">
+                    <div class="screenshot-placeholder">🎨</div>
+                    <div class="screenshot-caption">Style Buttons</div>
+                </div>
+                <div class="screenshot">
+                    <div class="screenshot-placeholder">🔔</div>
+                    <div class="screenshot-caption">Toast Notification</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="install-steps">
+            <h2>🚀 Quick Start</h2>
+            <ol>
+                <li>Extract all files to a folder</li>
+                <li>Start LanguageTool: <code>docker run -p 8010:8010 silviof/docker-languagetool</code></li>
+                <li>Start Ollama: <code>ollama pull llama3 && ollama serve</code></li>
+                <li>Open Chrome → <code>chrome://extensions/</code></li>
+                <li>Enable "Developer mode" → Click "Load unpacked"</li>
+                <li>Select the extension folder</li>
+                <li>Focus any text input and look for the ★ button!</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

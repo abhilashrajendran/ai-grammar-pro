@@ -1,0 +1,17 @@
+
+# Ignore everything in the repository root
+/*
+
+# But allow the chrome folder and everything under it
+!/chrome/
+!/chrome/**
+
+# Keep this .gitignore tracked
+!/.gitignore
+
+# Allow docker-compose.yml in the docker folder
+!/docker/docker-compose.yml
+
+# End of file
+out/
+
