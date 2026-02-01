@@ -1,0 +1,14 @@
+services:
+  # LanguageTool with N-Grams
+  languagetool:
+    image: meyay/languagetool:latest
+    container_name: lt_server
+    ports:
+      - "8010:8081"
+    environment:
+      - download_ngrams_for_langs=en # Auto-downloads ~8GB of English context data
+      - langtool_languageModel=/ngrams
+      - Java_Xmx=4g # N-Grams need more RAM
+    volumes:
+      - ./lt_data:/ngrams
+    restart: unless-stopped
