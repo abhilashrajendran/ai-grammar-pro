@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Grammar Pro+</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 320px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #212529;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 16px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4A90E2;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .action-btn {
+            padding: 12px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s;
+            color: #212529;
+        }
+        
+        .action-btn:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .action-icon {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .footer {
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            font-size: 11px;
+            color: #6c757d;
+            text-align: center;
+        }
+        
+        .footer a {
+            color: #4A90E2;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .shortcut-hint {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 11px;
+            color: #004085;
+            margin-top: 12px;
+        }
+        
+        .shortcut-hint strong {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✨ AI Grammar Pro+</h1>
+        <p>Your intelligent writing assistant</p>
+    </div>
+    
+    <div class="content">
+        <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" id="status">Ready</div>
+        </div>
+        
+        <div class="quick-actions">
+            <button class="action-btn" id="settings-btn">
+                <span class="action-icon">⚙️</span>
+                Settings
+            </button>
+            <button class="action-btn" id="help-btn">
+                <span class="action-icon">❓</span>
+                Help
+            </button>
+        </div>
+        
+        <div class="shortcut-hint">
+            <strong>Keyboard Shortcuts:</strong><br>
+            <kbd>Ctrl+Shift+G</kbd> - Check Grammar<br>
+            <kbd>Ctrl+Shift+R</kbd> - Quick Rephrase
+        </div>
+    </div>
+    
+    <div class="footer">
+        Version 3.0.0 | <a href="#" id="options-link">Options</a>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>

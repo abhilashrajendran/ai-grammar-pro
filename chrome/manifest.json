@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "AI Grammar Pro",
-  "version": "2.1",
-  "description": "Real-time grammar checking with AI-powered rephrasing for textareas",
+  "name": "AI Grammar Pro+",
+  "version": "3.0.0",
+  "description": "Advanced grammar checking with AI-powered rephrasing, style adaptation, and real-time suggestions",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "contextMenus"
   ],
   "host_permissions": [
     "http://192.168.6.2:8010/*",
@@ -22,9 +23,34 @@
       "run_at": "document_idle"
     }
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options.html",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "commands": {
+    "check-grammar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+G",
+        "mac": "Command+Shift+G"
+      },
+      "description": "Check grammar in focused textarea"
+    },
+    "quick-rephrase": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Command+Shift+R"
+      },
+      "description": "Quick rephrase with default style"
+    }
   }
 }
