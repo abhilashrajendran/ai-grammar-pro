@@ -1,14 +1,44 @@
+version: '3.8'
+
 services:
-  # LanguageTool with N-Grams
+  # LanguageTool - Grammar checking service
   languagetool:
     image: meyay/languagetool:latest
-    container_name: lt_server
+    container_name: languagetool
     ports:
       - "8010:8081"
     environment:
-      - download_ngrams_for_langs=en # Auto-downloads ~8GB of English context data
+      - download_ngrams_for_langs=en
       - langtool_languageModel=/ngrams
-      - Java_Xmx=4g # N-Grams need more RAM
+      - Java_Xmx=4g
     volumes:
       - ./lt_data:/ngrams
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/v2/languages"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Ollama - AI/LLM service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "30068:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    volumes:
+      - ./ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  lt_data:
+  ollama_data:

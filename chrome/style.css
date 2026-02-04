@@ -1,151 +1,72 @@
+/**
+ * AI Grammar Pro - Stylesheet
+ * Inspired by LanguageTool's professional UI design
+ */
+
 /* ============================================================================
-   POPUP STYLES
+   ROOT & GENERAL STYLES
    ============================================================================ */
 
-.lt-ai-popup {
+:root {
+    --lt-color-error: #d73131;
+    --lt-color-border: #e0e0e0;
+    --lt-color-bg: #ffffff;
+    --lt-color-text: #333333;
+    --lt-color-text-light: #666666;
+    --lt-color-highlight-bg: #fff3cd;
+    --lt-color-button-bg: #f5f5f5;
+    --lt-color-button-hover: #eeeeee;
+    --lt-color-success: #52c41a;
+    --lt-color-shadow: rgba(0, 0, 0, 0.12);
+    --lt-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    --lt-border-radius: 6px;
+    --lt-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* ============================================================================
+   FLOATING BUTTON
+   ============================================================================ */
+
+.lt-float-btn {
     position: absolute;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-    padding: 14px;
-    z-index: 200000;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    width: 320px;
-    max-width: 90vw;
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-.lt-ai-header { 
-    font-size: 11px; 
-    font-weight: 600; 
-    color: #666; 
-    margin-bottom: 10px; 
-    text-transform: uppercase; 
-    letter-spacing: 0.5px;
-}
-
-/* ============================================================================
-   MIRROR DIV
-   ============================================================================ */
-
-.lt-mirror {
-    position: absolute;
-    pointer-events: none;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-}
-
-/* ============================================================================
-   UNDERLINE HIGHLIGHTING
-   ============================================================================ */
-
-.lt-underline {
-    text-decoration: underline wavy #ff4d4d;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 2px;
-    background-color: transparent !important;
-    color: inherit;
-    display: inline;
-    position: relative;
-    pointer-events: auto;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-@supports not (text-decoration: underline wavy) {
-    .lt-underline {
-        border-bottom: 2px dotted #ff4d4d;
-        text-decoration: none;
-    }
-}
-
-.lt-underline:hover {
-    background-color: rgba(255, 77, 77, 0.1) !important;
-}
-
-/* ============================================================================
-   SUGGESTION BOXES
-   ============================================================================ */
-
-.suggestion-text {
-    color: #28a745 !important;
-    font-weight: 600;
-}
-
-.suggestion-box {
-    background: #f8f9fa;
-    border: 1px solid #e1e4e8;
-    padding: 10px;
-    border-radius: 8px;
-    cursor: default;
-    font-size: 13px;
-    color: #24292e;
-    word-wrap: break-word;
-    line-height: 1.5;
-}
-
-.suggestion-box.fix-btn {
-    background: linear-gradient(135deg, #f0fff4 0%, #e6f7ed 100%);
-    border-color: #9ae6b4;
-    color: #22543d;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.suggestion-box.fix-btn:hover {
-    background: linear-gradient(135deg, #e6f7ed 0%, #d4f1de 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(34, 84, 61, 0.1);
-}
-
-.info-box {
-    background: linear-gradient(135deg, #e6f7ff 0%, #d6efff 100%);
-    border: 1px solid #91d5ff;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #003a8c;
-    margin-bottom: 10px;
-}
-
-/* ============================================================================
-   FLOATING AI BUTTON
-   ============================================================================ */
-
-.ai-grammar-float-btn {
-    position: absolute;
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
     background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+    border: none;
     border-radius: 50%;
+    color: white;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     z-index: 100001;
-    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.4);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    color: white;
+    box-shadow: 0 2px 8px var(--lt-color-shadow);
+    font-size: 16px;
+    transition: var(--lt-transition);
+    font-family: var(--lt-font-family);
+    outline: none;
 }
 
-.ai-grammar-float-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.6);
+.lt-float-btn:hover {
+    background: linear-gradient(135deg, #357ABD 0%, #2f5fa1 100%);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+    transform: scale(1.08);
 }
 
-.ai-grammar-float-btn:active {
+.lt-float-btn:active {
     transform: scale(0.95);
 }
 
-.ai-grammar-float-btn.loading {
-    animation: pulse 1.5s ease-in-out infinite;
+.lt-float-btn.loading {
+    animation: lt-pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse {
+@keyframes lt-pulse {
     0%, 100% {
         opacity: 1;
         transform: scale(1);
@@ -156,136 +77,67 @@
     }
 }
 
-/* ============================================================================
-   AI CONTROLS
-   ============================================================================ */
-
-.ai-toggle-btn {
-    width: 100%;
-    background: linear-gradient(135deg, #f0f7ff 0%, #e6f0ff 100%);
-    border: 1px solid #91d5ff;
-    color: #0050b3;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-top: 10px;
-    padding: 8px;
-    border-radius: 6px;
-    transition: all 0.2s;
-}
-
-.ai-toggle-btn:hover {
-    background: linear-gradient(135deg, #e6f0ff 0%, #d6e8ff 100%);
-    border-color: #69c0ff;
-}
-
-.ai-style-group {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-    margin-bottom: 8px;
-}
-
-.style-btn {
-    font-size: 11px;
-    padding: 8px 10px;
-    border: 1px solid #d9d9d9;
-    border-radius: 6px;
-    background: white;
-    cursor: pointer;
-    color: #595959;
-    transition: all 0.2s;
-    font-weight: 500;
-    text-align: left;
-}
-
-.style-btn:hover {
-    background: #f5f5f5;
-    border-color: #4A90E2;
-    color: #4A90E2;
-}
-
-.style-btn.active {
-    background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-    border-color: #4A90E2;
-    color: white;
+.lt-float-btn:focus {
+    outline: 2px solid #357ABD;
+    outline-offset: 2px;
 }
 
 /* ============================================================================
-   ACTION BUTTONS (Copy & Apply)
+   MIRROR LAYER FOR HIGHLIGHTING
    ============================================================================ */
 
-.copy-btn, .apply-btn {
+.lt-mirror {
     position: absolute;
-    background: white;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    opacity: 0.7;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
 }
 
-.copy-btn {
-    top: 8px;
-    right: 40px;
+.lt-error {
+    background-color: rgba(255, 77, 77, 0.3) !important;
+    text-decoration: underline wavy #d73131 !important;
+    text-decoration-thickness: 2px !important;
+    text-underline-offset: 2px !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    transition: background-color 0.15s !important;
+    color: inherit !important;
 }
 
-.apply-btn {
-    top: 8px;
-    right: 8px;
-    background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
-    border-color: #52c41a;
-    color: white;
-    opacity: 0.9;
+.lt-error:hover {
+    background-color: rgba(255, 77, 77, 0.5) !important;
 }
 
-.copy-btn:hover {
-    opacity: 1;
-    transform: scale(1.1);
-    border-color: #4A90E2;
-}
-
-.apply-btn:hover {
-    opacity: 1;
-    transform: scale(1.1);
-    box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3);
-}
-
-.copy-btn:active, .apply-btn:active {
-    transform: scale(0.9);
+/* Fallback for browsers without wavy underline support */
+@supports not (text-decoration: underline wavy) {
+    .lt-error {
+        border-bottom: 2px dotted #d73131 !important;
+        text-decoration: none !important;
+    }
 }
 
 /* ============================================================================
-   AI RESPONSE TEXT
+   POPUP - GRAMMAR SUGGESTIONS
    ============================================================================ */
 
-#ai-response-text {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-size: 13px;
-    line-height: 1.6;
-    color: #24292e;
-    position: relative;
-    padding-right: 70px !important;
-    min-height: 40px;
-    max-height: 200px;
-    overflow-y: auto;
+.lt-popup {
+    position: fixed;
+    background: var(--lt-color-bg);
+    border: 1px solid var(--lt-color-border);
+    border-radius: var(--lt-border-radius);
+    box-shadow: 0 4px 16px var(--lt-color-shadow);
+    z-index: 200000;
+    font-family: var(--lt-font-family);
+    min-width: 280px;
+    max-width: 400px;
+    animation: lt-slide-in 0.3s ease-out;
 }
 
-#ai-area {
-    animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
+@keyframes lt-slide-in {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(-8px);
     }
     to {
         opacity: 1;
@@ -293,75 +145,310 @@
     }
 }
 
-/* ============================================================================
-   TOAST NOTIFICATIONS
-   ============================================================================ */
-
-.ai-grammar-toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: #24292e;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: 300000;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 14px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.lt-popup-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 12px 14px !important;
+    border-bottom: 1px solid var(--lt-color-border) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--lt-color-text) !important;
 }
 
-.ai-grammar-toast.show {
-    opacity: 1;
+.lt-popup-header strong {
+    font-weight: 600;
+}
+
+.lt-close {
+    background: none !important;
+    border: none !important;
+    color: var(--lt-color-text-light) !important;
+    cursor: pointer !important;
+    font-size: 20px !important;
+    padding: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: var(--lt-transition) !important;
+    font-family: var(--lt-font-family) !important;
+}
+
+.lt-close:hover {
+    color: var(--lt-color-text);
+}
+
+.lt-popup-body {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--lt-color-text);
+}
+
+.lt-message {
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+    color: var(--lt-color-text);
+}
+
+/* ============================================================================
+   SUGGESTION BUTTONS (for grammar fixes)
+   ============================================================================ */
+
+.lt-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lt-suggestion-btn {
+    padding: 8px 12px !important;
+    background: linear-gradient(135deg, #f0fff4 0%, #e6f7ed 100%) !important;
+    border: 1px solid #9ae6b4 !important;
+    border-radius: calc(var(--lt-border-radius) - 2px) !important;
+    color: #22543d !important;
+    cursor: pointer !important;
+    font-size: 13px !important;
+    font-family: var(--lt-font-family) !important;
+    text-align: left !important;
+    transition: var(--lt-transition) !important;
+    font-weight: 500 !important;
+    display: block !important;
+    width: 100% !important;
+    text-decoration: none !important;
+}
+
+.lt-suggestion-btn:hover {
+    background: linear-gradient(135deg, #e6f7ed 0%, #d4f1de 100%);
+    box-shadow: 0 2px 6px rgba(34, 84, 61, 0.1);
+    transform: translateY(-1px);
+}
+
+.lt-suggestion-btn:active {
     transform: translateY(0);
 }
 
+.lt-suggestion-btn:focus {
+    outline: 2px solid #22543d;
+    outline-offset: 1px;
+}
+
 /* ============================================================================
-   SCROLLBAR STYLING
+   POPUP - AI SUGGESTIONS
    ============================================================================ */
 
-.lt-ai-popup::-webkit-scrollbar,
-#ai-response-text::-webkit-scrollbar {
+.lt-ai-popup {
+    position: fixed;
+    background: var(--lt-color-bg);
+    border: 1px solid var(--lt-color-border);
+    border-radius: var(--lt-border-radius);
+    box-shadow: 0 4px 16px var(--lt-color-shadow);
+    z-index: 200001;
+    font-family: var(--lt-font-family);
+    min-width: 320px;
+    max-width: 500px;
+    animation: lt-slide-in 0.3s ease-out;
+}
+
+.lt-ai-response {
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: calc(var(--lt-border-radius) - 2px);
+    border: 1px solid var(--lt-color-border);
+    color: var(--lt-color-text);
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.lt-ai-response::-webkit-scrollbar {
     width: 6px;
 }
 
-.lt-ai-popup::-webkit-scrollbar-track,
-#ai-response-text::-webkit-scrollbar-track {
+.lt-ai-response::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 3px;
 }
 
-.lt-ai-popup::-webkit-scrollbar-thumb,
-#ai-response-text::-webkit-scrollbar-thumb {
+.lt-ai-response::-webkit-scrollbar-thumb {
     background: #c1c1c1;
     border-radius: 3px;
 }
 
-.lt-ai-popup::-webkit-scrollbar-thumb:hover,
-#ai-response-text::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+.lt-ai-response::-webkit-scrollbar-thumb:hover {
+    background: #999999;
+}
+
+/* ============================================================================
+   POPUP ACTIONS
+   ============================================================================ */
+
+.lt-popup-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.lt-btn {
+    padding: 8px 12px;
+    border: 1px solid var(--lt-color-border);
+    border-radius: calc(var(--lt-border-radius) - 2px);
+    background: var(--lt-color-button-bg);
+    color: var(--lt-color-text);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--lt-font-family);
+    font-weight: 500;
+    transition: var(--lt-transition);
+    outline: none;
+}
+
+.lt-btn:hover {
+    background: var(--lt-color-button-hover);
+}
+
+.lt-btn:active {
+    transform: scale(0.95);
+}
+
+.lt-btn-copy {
+    background: linear-gradient(135deg, #f0f7ff 0%, #e6f0ff 100%);
+    border-color: #91d5ff;
+    color: #0050b3;
+}
+
+.lt-btn-copy:hover {
+    background: linear-gradient(135deg, #e6f0ff 0%, #d6e8ff 100%);
+    border-color: #69c0ff;
+}
+
+.lt-btn-apply {
+    background: linear-gradient(135deg, #f6ffed 0%, #f0f5ff 100%);
+    border-color: #b7eb8f;
+    color: #274e0b;
+}
+
+.lt-btn-apply:hover {
+    background: linear-gradient(135deg, #f0f5ff 0%, #e6ffcc 100%);
+    border-color: #7cb305;
+}
+
+/* ============================================================================
+   TOAST NOTIFICATIONS
+   ============================================================================ */
+
+.lt-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #24292e;
+    color: white;
+    padding: 12px 16px;
+    border-radius: var(--lt-border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 300000;
+    font-family: var(--lt-font-family);
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: var(--lt-transition);
+    pointer-events: none;
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lt-toast.show {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* ============================================================================
    RESPONSIVE DESIGN
    ============================================================================ */
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+    .lt-popup,
     .lt-ai-popup {
-        width: 90vw;
-        max-width: 90vw;
+        min-width: 280px;
+        max-width: calc(100vw - 20px);
     }
     
-    .ai-style-group {
-        grid-template-columns: 1fr;
+    .lt-float-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --lt-color-bg: #1f1f1f;
+        --lt-color-text: #ffffff;
+        --lt-color-text-light: #cccccc;
+        --lt-color-border: #404040;
+        --lt-color-highlight-bg: #404000;
+        --lt-color-button-bg: #2a2a2a;
+        --lt-color-button-hover: #353535;
+        --lt-color-shadow: rgba(0, 0, 0, 0.4);
     }
     
-    .ai-grammar-float-btn {
-        width: 36px;
-        height: 36px;
+    .lt-error {
+        background-color: #5a1a1a;
+        text-decoration-color: #ff6b6b;
+    }
+    
+    .lt-error:hover {
+        background-color: #6d1f1f;
+    }
+    
+    .lt-ai-response {
+        background: #2a2a2a;
+        border-color: var(--lt-color-border);
+    }
+    
+    .lt-suggestion-btn {
+        background: linear-gradient(135deg, #1a2a1a 0%, #1f3a1f 100%);
+        border-color: #3a6b3a;
+        color: #b3e5b3;
+    }
+    
+    .lt-suggestion-btn:hover {
+        background: linear-gradient(135deg, #1f3a1f 0%, #244a24 100%);
+    }
+    
+    .lt-btn-copy {
+        background: linear-gradient(135deg, #1a2a3a 0%, #1f3a4a 100%);
+        border-color: #3a5a6b;
+        color: #6ba3d4;
+    }
+    
+    .lt-btn-apply {
+        background: linear-gradient(135deg, #2a3a1a 0%, #3a4a1f 100%);
+        border-color: #5a6b3a;
+        color: #9abc6b;
+    }
+    
+    .lt-ai-response::-webkit-scrollbar-track {
+        background: #2a2a2a;
+    }
+    
+    .lt-ai-response::-webkit-scrollbar-thumb {
+        background: #505050;
+    }
+    
+    .lt-ai-response::-webkit-scrollbar-thumb:hover {
+        background: #666666;
     }
 }
 
@@ -369,35 +456,70 @@
    ACCESSIBILITY
    ============================================================================ */
 
-.ai-grammar-float-btn:focus,
-.style-btn:focus,
-.ai-toggle-btn:focus,
-.copy-btn:focus,
-.apply-btn:focus {
-    outline: 2px solid #4A90E2;
-    outline-offset: 2px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    .lt-underline {
-        text-decoration-thickness: 3px;
-    }
-    
-    .ai-grammar-float-btn {
-        border: 2px solid white;
-    }
-}
-
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-    .ai-grammar-float-btn,
-    .style-btn,
-    .ai-toggle-btn,
-    .copy-btn,
-    .apply-btn,
-    .ai-grammar-toast {
+    .lt-float-btn,
+    .lt-popup,
+    .lt-ai-popup,
+    .lt-suggestion-btn,
+    .lt-btn,
+    .lt-toast {
         transition: none;
         animation: none;
     }
+}
+
+@media (prefers-contrast: high) {
+    .lt-error {
+        text-decoration-thickness: 3px;
+    }
+    
+    .lt-float-btn {
+        border: 2px solid white;
+    }
+    
+    .lt-popup,
+    .lt-ai-popup {
+        border-width: 2px;
+    }
+}
+
+/* ============================================================================
+   FOCUS VISIBLE STATES
+   ============================================================================ */
+
+.lt-float-btn:focus-visible {
+    outline: 2px solid #357ABD;
+    outline-offset: 2px;
+}
+
+.lt-suggestion-btn:focus-visible,
+.lt-btn:focus-visible,
+.lt-close:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}
+
+/* ============================================================================
+   CUSTOM SCROLLBAR FOR POPUPS
+   ============================================================================ */
+
+.lt-popup::-webkit-scrollbar,
+.lt-ai-popup::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lt-popup::-webkit-scrollbar-track,
+.lt-ai-popup::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.lt-popup::-webkit-scrollbar-thumb,
+.lt-ai-popup::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.lt-popup::-webkit-scrollbar-thumb:hover,
+.lt-ai-popup::-webkit-scrollbar-thumb:hover {
+    background: #999999;
 }

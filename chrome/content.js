@@ -1,153 +1,108 @@
-let timer;
-let mirrorDiv;
+/**
+ * AI Grammar Pro - Content Script
+ * Optimized for textarea elements only
+ * Inspired by LanguageTool's UI/UX approach
+ */
+
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
+
+let checkTimer = null;
+let mirrorDiv = null;
 let currentMatches = [];
 let currentTarget = null;
 let floatingButton = null;
-let observedElements = new WeakSet();
+const observedTextareas = new WeakSet();
 
 // ============================================================================
-// EDITABLE ELEMENT DETECTION
+// TEXTAREA DETECTION & TEXT EXTRACTION
 // ============================================================================
 
-function isEditableElement(element) {
-    if (!element || !element.tagName) return false;
-    
-    const tagName = element.tagName.toLowerCase();
-    const isTextarea = tagName === 'textarea';
-    const isTextInput = tagName === 'input' && 
-        ['text', 'email', 'search', 'url', 'tel'].includes(element.type || 'text');
-    const isContentEditable = element.isContentEditable || 
-        element.getAttribute('contenteditable') === 'true' ||
-        element.getAttribute('contenteditable') === '';
-    
-    // Exclude password and hidden fields
-    if (tagName === 'input' && ['password', 'hidden', 'file', 'checkbox', 'radio'].includes(element.type)) {
-        return false;
-    }
-    
-    return isTextarea || isTextInput || isContentEditable;
+/**
+ * Check if element is a textarea we should monitor
+ */
+function isTextarea(element) {
+    return element && 
+           element.tagName === 'TEXTAREA' && 
+           !element.disabled && 
+           !element.readOnly;
 }
 
-function getTextFromElement(element) {
-    if (!element) return '';
-    
-    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-        return element.value || '';
-    } else if (element.isContentEditable) {
-        return element.innerText || element.textContent || '';
-    }
-    return '';
+/**
+ * Get text from textarea
+ */
+function getTextFromTextarea(textarea) {
+    return textarea?.value || '';
 }
 
-function setTextInElement(element, text) {
-    if (!element) return;
+/**
+ * Set text in textarea and trigger change events
+ */
+function setTextInTextarea(textarea, text) {
+    if (!textarea) return;
     
-    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-        element.value = text;
-    } else if (element.isContentEditable) {
-        element.innerText = text;
-    }
-    element.dispatchEvent(new Event('input', { bubbles: true }));
+    textarea.value = text;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    textarea.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-function replaceTextRange(element, offset, length, replacement) {
-    const text = getTextFromElement(element);
+/**
+ * Replace specific text range in textarea
+ */
+function replaceTextRange(textarea, offset, length, replacement) {
+    const text = getTextFromTextarea(textarea);
     const newText = text.slice(0, offset) + replacement + text.slice(offset + length);
-    setTextInElement(element, newText);
+    setTextInTextarea(textarea, newText);
 }
 
 // ============================================================================
-// FLOATING AI BUTTON
+// FLOATING BUTTON
 // ============================================================================
 
-function createFloatingButton(target) {
-    if (!target) return;
+/**
+ * Create and position floating check button
+ */
+function createFloatingButton(textarea) {
+    if (!textarea || !isTextarea(textarea)) return;
     
-    // Remove existing button
     removeFloatingButton();
     
-    floatingButton = document.createElement('div');
-    floatingButton.className = 'ai-grammar-float-btn';
+    floatingButton = document.createElement('button');
+    floatingButton.className = 'lt-float-btn';
+    floatingButton.setAttribute('type', 'button');
+    floatingButton.setAttribute('title', 'Check grammar and get AI suggestions');
+    floatingButton.setAttribute('aria-label', 'Grammar check');
     floatingButton.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" 
-                  fill="currentColor"/>
-            <path d="M9 11L11 13L15 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
         </svg>
     `;
-    floatingButton.title = 'AI Grammar Check & Rephrase (Click to check)';
     
     document.body.appendChild(floatingButton);
-    positionFloatingButton(target);
+    positionFloatingButton(textarea);
     
-    // Click handler for manual invocation
-    floatingButton.onclick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        const text = getTextFromElement(target);
-        
-        if (!text || text.trim().length === 0) {
-            showQuickToast('Please enter some text first');
-            return;
-        }
-        
-        // Show loading state
-        if (floatingButton) {
-            floatingButton.classList.add('loading');
-        }
-        
-        chrome.runtime.sendMessage(
-            { action: "checkText", text: text, style: 'professional' },
-            (res) => {
-                // Remove loading state (check if button still exists)
-                if (floatingButton) {
-                    floatingButton.classList.remove('loading');
-                }
-                
-                if (chrome.runtime.lastError) {
-                    showQuickToast('Error: Extension disconnected');
-                    return;
-                }
-                
-                if (!res) {
-                    showQuickToast('Error: No response from extension');
-                    return;
-                }
-                
-                currentMatches = res.grammar || [];
-                window.lastAiResponse = res.ai;
-                
-                // Create mirror and highlight if there are grammar errors
-                if (currentMatches.length > 0 && target) {
-                    createMirror(target);
-                    highlightAll(text, currentMatches, target);
-                }
-                
-                // Always show popup with AI suggestions
-                if (target) {
-                    showManualPopup(target, e);
-                }
-            }
-        );
-    };
-    
-    // Store reference
-    target._aiFloatingButton = floatingButton;
+    floatingButton.addEventListener('click', () => performCheck(textarea));
+    floatingButton._textarea = textarea;
 }
 
-function positionFloatingButton(target) {
-    if (!floatingButton || !target) return;
+/**
+ * Position floating button in top-right corner of textarea
+ */
+function positionFloatingButton(textarea) {
+    if (!floatingButton || !textarea) return;
     
-    const rect = target.getBoundingClientRect();
-    const scrollY = window.scrollY || window.pageYOffset;
-    const scrollX = window.scrollX || window.pageXOffset;
+    const rect = textarea.getBoundingClientRect();
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft;
     
-    // Position in top-right corner of the element
     floatingButton.style.top = `${rect.top + scrollY + 8}px`;
-    floatingButton.style.left = `${rect.right + scrollX - 38}px`;
+    floatingButton.style.left = `${rect.right + scrollX - 40}px`;
 }
 
+/**
+ * Remove floating button
+ */
 function removeFloatingButton() {
     if (floatingButton) {
         floatingButton.remove();
@@ -155,36 +110,24 @@ function removeFloatingButton() {
     }
 }
 
-function showQuickToast(message) {
-    const toast = document.createElement('div');
-    toast.className = 'ai-grammar-toast';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 2000);
-}
-
 // ============================================================================
-// MIRROR & HIGHLIGHTING
+// MIRROR LAYER FOR HIGHLIGHTING
 // ============================================================================
 
-function createMirror(target) {
-    if (!target) return;
+/**
+ * Create invisible mirror div to highlight errors
+ */
+function createMirror(textarea) {
+    if (!textarea) return;
     if (mirrorDiv) mirrorDiv.remove();
-
-    // Don't create mirror for contentEditable (too complex)
-    if (target.isContentEditable) return;
-
+    
     mirrorDiv = document.createElement('div');
     mirrorDiv.className = 'lt-mirror';
     
-    const rect = target.getBoundingClientRect();
-    const style = window.getComputedStyle(target);
-
+    const rect = textarea.getBoundingClientRect();
+    const style = window.getComputedStyle(textarea);
+    
+    // Copy styling from textarea to mirror
     Object.assign(mirrorDiv.style, {
         position: 'absolute',
         top: `${rect.top + window.scrollY}px`,
@@ -197,90 +140,308 @@ function createMirror(target) {
         paddingBottom: style.paddingBottom,
         paddingLeft: style.paddingLeft,
         border: style.border,
-        borderWidth: style.borderWidth,
         fontSize: style.fontSize,
         fontFamily: style.fontFamily,
         lineHeight: style.lineHeight,
         letterSpacing: style.letterSpacing,
-        wordSpacing: style.wordSpacing,
-        textAlign: style.textAlign,
         whiteSpace: 'pre-wrap',
         wordWrap: 'break-word',
         overflowWrap: style.overflowWrap,
+        overflow: 'hidden',
         color: 'transparent',
         pointerEvents: 'none',
         zIndex: '100000',
-        overflow: 'hidden',
         boxSizing: style.boxSizing,
         margin: '0',
-        background: 'transparent'
+        background: 'transparent',
+        borderRadius: style.borderRadius,
+        outline: 'none'
     });
-
-    document.body.appendChild(mirrorDiv);
-
-    // Sync scroll immediately and on scroll
-    syncScroll(target);
-    const scrollHandler = () => syncScroll(target);
-    target.addEventListener('scroll', scrollHandler);
-    target._scrollHandler = scrollHandler;
-}
-
-function syncScroll(target) {
-    if (!mirrorDiv || !target) return;
-    mirrorDiv.scrollTop = target.scrollTop || 0;
-    mirrorDiv.scrollLeft = target.scrollLeft || 0;
-}
-
-function highlightAll(text, matches, target) {
-    if (!mirrorDiv) return;
-
-    currentMatches = matches;
-    currentTarget = target;
     
-    if (matches.length === 0) {
-        mirrorDiv.innerHTML = '';
+    document.body.appendChild(mirrorDiv);
+    syncMirrorScroll(textarea);
+    
+    // Sync scroll events
+    const scrollHandler = () => syncMirrorScroll(textarea);
+    textarea.addEventListener('scroll', scrollHandler);
+    textarea._scrollHandler = scrollHandler;
+}
+
+/**
+ * Sync mirror scroll with textarea
+ */
+function syncMirrorScroll(textarea) {
+    if (!mirrorDiv || !textarea) return;
+    mirrorDiv.scrollTop = textarea.scrollTop;
+    mirrorDiv.scrollLeft = textarea.scrollLeft;
+}
+
+/**
+ * Highlight all errors in mirror
+ */
+function highlightErrors(text, matches, textarea) {
+    if (!mirrorDiv) return;
+    
+    mirrorDiv.innerHTML = '';
+    let lastIndex = 0;
+    
+    matches.forEach((match, index) => {
+        const { offset, length } = match;
+        
+        // Add text before error
+        if (offset > lastIndex) {
+            const span = document.createElement('span');
+            span.textContent = text.substring(lastIndex, offset);
+            mirrorDiv.appendChild(span);
+        }
+        
+        // Add error with INLINE highlighting styles
+        const errorSpan = document.createElement('span');
+        errorSpan.textContent = text.substring(offset, offset + length);
+        errorSpan.setAttribute('data-error-index', index);
+        errorSpan.setAttribute('data-textarea-id', Math.random().toString(36));
+        
+        // Apply inline styles directly - no CSS class dependency
+        errorSpan.style.cssText = `
+            background-color: rgba(255, 77, 77, 0.3) !important;
+            text-decoration: underline wavy #d73131 !important;
+            text-decoration-thickness: 2px !important;
+            text-underline-offset: 2px !important;
+            cursor: pointer !important;
+            color: inherit !important;
+            position: relative !important;
+            pointer-events: auto !important;
+            display: inline !important;
+        `;
+        
+        // Store match data on the span element
+        errorSpan._matchData = match;
+        errorSpan._textarea = textarea;
+        
+        errorSpan.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            console.log('Error span clicked:', e.target._matchData);
+            if (e.target._matchData && e.target._textarea) {
+                showSuggestions(e.target._matchData, e.target._textarea);
+            }
+        });
+        
+        // Hover effect
+        errorSpan.addEventListener('mouseenter', (e) => {
+            e.target.style.backgroundColor = 'rgba(255, 77, 77, 0.5) !important';
+        });
+        
+        errorSpan.addEventListener('mouseleave', (e) => {
+            e.target.style.backgroundColor = 'rgba(255, 77, 77, 0.3) !important';
+        });
+        
+        mirrorDiv.appendChild(errorSpan);
+        
+        lastIndex = offset + length;
+    });
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+        const span = document.createElement('span');
+        span.textContent = text.substring(lastIndex);
+        mirrorDiv.appendChild(span);
+    }
+}
+
+/**
+ * Remove mirror layer
+ */
+function clearMirror() {
+    if (mirrorDiv) {
+        mirrorDiv.remove();
+        mirrorDiv = null;
+    }
+}
+
+// ============================================================================
+// SUGGESTION POPUP
+// ============================================================================
+
+/**
+ * Show suggestions for specific error
+ */
+function showSuggestions(match, textarea) {
+    console.log('showSuggestions called with match:', match);
+    
+    if (!match) {
+        console.error('No match provided to showSuggestions');
         return;
     }
-
-    // Sort matches by offset (descending)
-    const sorted = [...matches].sort((a, b) => b.offset - a.offset);
-
-    let htmlParts = [];
-    let lastIndex = text.length;
-
-    sorted.forEach((m) => {
-        const index = matches.indexOf(m);
-        const endPos = m.offset + m.length;
+    
+    const { offset, length, message, replacements: rawReplacements } = match;
+    
+    // Remove existing popup
+    const existing = document.getElementById('lt-popup');
+    if (existing) existing.remove();
+    
+    const popup = document.createElement('div');
+    popup.id = 'lt-popup';
+    popup.className = 'lt-popup';
+    
+    // Apply inline styles to ensure they work
+    popup.style.cssText = `
+        position: fixed !important;
+        background: #1f1f1f !important;
+        border: 1px solid #404040 !important;
+        border-radius: 6px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        z-index: 200000 !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        min-width: 280px !important;
+        max-width: 400px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        color: #fff !important;
+        font-size: 13px !important;
+    `;
+    
+    // Get current caret position for popup placement
+    const rect = textarea.getBoundingClientRect();
+    const text = getTextFromTextarea(textarea);
+    
+    // Estimate position of error in textarea
+    const linesBefore = text.substring(0, offset).split('\n').length;
+    const topOffset = Math.min(linesBefore * 20, textarea.clientHeight - 120);
+    
+    popup.style.top = `${rect.top + topOffset}px`;
+    popup.style.left = `${Math.max(rect.left + 20, 10)}px`;
+    
+    // Extract replacement strings from LanguageTool format
+    const replacements = rawReplacements
+        ? rawReplacements.map(r => typeof r === 'object' ? r.value : r).filter(r => r)
+        : [];
+    
+    console.log('Message:', message);
+    console.log('Replacements:', replacements);
+    
+    // Build popup content
+    let content = `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #404040; font-weight: 600;">
+            <strong>Grammar Issue</strong>
+            <button type="button" style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 20px; padding: 0; width: 24px; height: 24px; font-family: inherit;" class="lt-close" aria-label="Close">×</button>
+        </div>
+        <div style="padding: 12px 14px;">
+            <p style="margin: 0 0 12px 0; line-height: 1.5; color: #fff;">${escapeHtml(message)}</p>
+    `;
+    
+    if (replacements && replacements.length > 0) {
+        content += '<div style="display: flex; flex-direction: column; gap: 6px;">';
+        replacements.slice(0, 3).forEach(replacement => {
+            if (replacement && typeof replacement === 'string') {
+                content += `
+                    <button type="button" style="padding: 8px 12px; background: linear-gradient(135deg, #2a4a2a 0%, #1f3a1f 100%); border: 1px solid #4a6a4a; border-radius: 4px; color: #9abc6b; cursor: pointer; font-size: 12px; font-family: inherit; text-align: left; font-weight: 500; width: 100%; text-decoration: none; transition: all 0.2s;" class="lt-suggestion-btn" data-replacement="${escapeHtml(replacement)}">
+                        ${escapeHtml(replacement)}
+                    </button>
+                `;
+            }
+        });
+        content += '</div>';
+    } else {
+        content += '<p style="color: #999; margin: 0;">No suggestions available</p>';
+    }
+    
+    content += '</div>';
+    
+    popup.innerHTML = content;
+    document.body.appendChild(popup);
+    
+    console.log('Popup created and added to body');
+    
+    // Close button
+    const closeBtn = popup.querySelector('.lt-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            console.log('Close button clicked');
+            popup.remove();
+        });
+    }
+    
+    // Suggestion buttons
+    popup.querySelectorAll('.lt-suggestion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const replacement = btn.getAttribute('data-replacement');
+            console.log('Suggestion clicked:', replacement);
+            replaceTextRange(textarea, offset, length, replacement);
+            showToast('✓ Fixed');
+            popup.remove();
+            
+            // Re-check after fix
+            setTimeout(() => checkText(textarea), 300);
+        });
         
-        htmlParts.unshift(escapeHtml(text.slice(endPos, lastIndex)));
+        // Add hover effects
+        btn.addEventListener('mouseenter', () => {
+            btn.style.background = 'linear-gradient(135deg, #3a5a3a 0%, #2a4a2a 100%)';
+            btn.style.boxShadow = '0 2px 8px rgba(26, 136, 68, 0.3)';
+            btn.style.transform = 'translateY(-1px)';
+        });
         
-        const word = text.slice(m.offset, endPos);
-        htmlParts.unshift(
-            `<span class="lt-underline" data-idx="${index}">${escapeHtml(word)}</span>`
-        );
-        
-        lastIndex = m.offset;
-    });
-
-    htmlParts.unshift(escapeHtml(text.slice(0, lastIndex)));
-
-    mirrorDiv.innerHTML = htmlParts.join('');
-
-    // Add click handlers
-    mirrorDiv.querySelectorAll('.lt-underline').forEach(span => {
-        span.style.pointerEvents = 'auto';
-        span.style.cursor = 'pointer';
-
-        span.onclick = (e) => {
-            e.stopPropagation();
-            const idx = parseInt(span.getAttribute('data-idx'), 10);
-            const match = currentMatches[idx];
-            const word = text.slice(match.offset, match.offset + match.length);
-            showPopup(target, match, word, e);
-        };
+        btn.addEventListener('mouseleave', () => {
+            btn.style.background = 'linear-gradient(135deg, #2a4a2a 0%, #1f3a1f 100%)';
+            btn.style.boxShadow = 'none';
+            btn.style.transform = 'translateY(0)';
+        });
     });
 }
 
+/**
+ * Show AI rephrase popup
+ */
+function showAIPopup(textarea, aiResponse) {
+    const existing = document.getElementById('lt-ai-popup');
+    if (existing) existing.remove();
+    
+    const popup = document.createElement('div');
+    popup.id = 'lt-ai-popup';
+    popup.className = 'lt-ai-popup';
+    
+    const rect = textarea.getBoundingClientRect();
+    popup.style.top = `${rect.top + 100}px`;
+    popup.style.left = `${Math.max(rect.left + 20, 10)}px`;
+    
+    popup.innerHTML = `
+        <div class="lt-popup-header">
+            <strong>AI Suggestions</strong>
+            <button type="button" class="lt-close" aria-label="Close">×</button>
+        </div>
+        <div class="lt-popup-body">
+            <div class="lt-ai-response">${escapeHtml(aiResponse)}</div>
+            <div class="lt-popup-actions">
+                <button type="button" class="lt-btn lt-btn-copy">📋 Copy</button>
+                <button type="button" class="lt-btn lt-btn-apply">✓ Apply</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Close button
+    popup.querySelector('.lt-close').addEventListener('click', () => popup.remove());
+    
+    // Copy button
+    popup.querySelector('.lt-btn-copy').addEventListener('click', () => {
+        navigator.clipboard.writeText(aiResponse).then(() => {
+            showToast('✓ Copied to clipboard');
+        });
+    });
+    
+    // Apply button
+    popup.querySelector('.lt-btn-apply').addEventListener('click', () => {
+        setTextInTextarea(textarea, aiResponse);
+        showToast('✓ Text replaced');
+        popup.remove();
+    });
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -288,355 +449,312 @@ function escapeHtml(text) {
 }
 
 // ============================================================================
-// POPUP UI
+// TOAST NOTIFICATIONS
 // ============================================================================
 
-function showManualPopup(target, clickEvent) {
-    if (!floatingButton) {
-        // Fallback: use mouse position if button is gone
-        const fallbackEvent = {
-            pageX: clickEvent.pageX,
-            pageY: clickEvent.pageY
-        };
-        showPopup(target, null, null, fallbackEvent, true);
-        return;
-    }
+/**
+ * Show temporary toast notification
+ */
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'lt-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
     
-    const rect = floatingButton.getBoundingClientRect();
-    const fakeEvent = {
-        pageX: rect.left,
-        pageY: rect.bottom + 5
-    };
-    
-    showPopup(target, null, null, fakeEvent, true);
-}
-
-function showPopup(target, match, wrongWord, e, isManual = false) {
-    if (!target) return;
-    
-    // Remove existing popup
-    const existingPopup = document.getElementById('ai-pop');
-    if (existingPopup) existingPopup.remove();
-
-    const p = document.createElement('div');
-    p.id = 'ai-pop';
-    p.className = 'lt-ai-popup';
-    
-    // Initial positioning
-    let posX = e.pageX;
-    let posY = e.pageY + 10;
-
-    document.body.appendChild(p);
-    
-    // Render content first so we can measure the final height
-    p.innerHTML = `... your existing popup HTML ...`;
-
-    // 🎯 VIEWPORT ADJUSTMENT
-    const popupRect = p.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    // Flip horizontally if it goes off the right edge
-    if (posX + popupRect.width > viewportWidth) {
-        posX = viewportWidth - popupRect.width - 20;
-    }
-
-    // Flip vertically if it goes off the bottom edge
-    if (posY + popupRect.height > viewportHeight + window.scrollY) {
-        posY = e.pageY - popupRect.height - 10;
-    }
-
-    // Force visible if it goes off the top
-    if (posY < window.scrollY) {
-        posY = window.scrollY + 10;
-    }
-
-    p.style.top = `${posY}px`;
-    p.style.left = `${posX}px`;
-
-    const suggestion = match?.replacements?.length ? match.replacements[0].value : null;
-    
-    let popupHTML = '';
-    
-    // Grammar section
-    if (match && wrongWord) {
-        popupHTML += `
-            <div class="lt-ai-header">Grammar Fix</div>
-            ${suggestion 
-                ? `<div class="suggestion-box fix-btn" data-suggestion="${escapeHtml(suggestion)}">
-                    Change to: <span class="suggestion-text">${escapeHtml(suggestion)}</span>
-                </div>`
-                : `<div class="suggestion-box">No suggestions found</div>`
-            }`;
-    } else if (isManual) {
-        popupHTML += `
-            <div class="lt-ai-header">AI Grammar Assistant</div>
-            ${currentMatches.length > 0 
-                ? `<div class="info-box">✓ Found ${currentMatches.length} grammar issue(s)</div>`
-                : `<div class="info-box">✓ No grammar issues detected</div>`
-            }`;
-    }
-    
-    // AI section
-    popupHTML += `
-        <button id="toggle-ai" class="ai-toggle-btn">✨ ${isManual ? 'AI Rephrase Options' : 'Show AI Rephrase'}</button>
-        
-        <div id="ai-area" style="display:${isManual ? 'block' : 'none'}; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
-            <div class="ai-style-group">
-                <button class="style-btn" data-style="professional">📝 Professional</button>
-                <button class="style-btn" data-style="casual">💬 Casual</button>
-                <button class="style-btn" data-style="academic">🎓 Academic</button>
-                <button class="style-btn" data-style="short">⚡ Concise</button>
-            </div>
-            <div style="position: relative; margin-top: 8px;">
-                <div class="suggestion-box" id="ai-response-text">
-                    ${escapeHtml(window.lastAiResponse || 'Click a style above to rephrase...')}
-                </div>
-                <button id="copy-ai" title="Copy to clipboard" class="copy-btn">📋</button>
-                <button id="apply-ai" title="Replace text" class="apply-btn">✓</button>
-            </div>
-        </div>
-    `;
-    
-    p.innerHTML = popupHTML;
-    document.body.appendChild(p);
-    
-    // Position adjustment
+    setTimeout(() => toast.classList.add('show'), 10);
     setTimeout(() => {
-        const popupRect = p.getBoundingClientRect();
-        if (popupRect.right > window.innerWidth) {
-            p.style.left = `${window.innerWidth - popupRect.width - 10}px`;
-        }
-        if (popupRect.bottom > window.innerHeight) {
-            p.style.top = `${e.pageY - popupRect.height - 10}px`;
-        }
-    }, 0);
-
-    // Event Handlers
-    const toggleBtn = p.querySelector('#toggle-ai');
-    const aiArea = p.querySelector('#ai-area');
-    if (toggleBtn) {
-        toggleBtn.onclick = (ev) => {
-            ev.stopPropagation();
-            aiArea.style.display = aiArea.style.display === 'none' ? 'block' : 'none';
-        };
-    }
-
-    // Style buttons
-    p.querySelectorAll('.style-btn').forEach(btn => {
-        btn.onclick = (ev) => {
-            ev.stopPropagation();
-            const style = btn.getAttribute('data-style');
-            const responseBox = p.querySelector('#ai-response-text');
-            const text = getTextFromElement(target);
-            
-            if (!text || text.trim().length === 0) {
-                responseBox.innerText = "Please enter some text first";
-                return;
-            }
-            
-            responseBox.innerText = "Generating...";
-            
-            p.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            chrome.runtime.sendMessage(
-                { action: "checkText", text: text, style: style },
-                (res) => {
-                    if (chrome.runtime.lastError) {
-                        if (responseBox) responseBox.innerText = "Error: Extension disconnected";
-                        return;
-                    }
-                    if (!res) {
-                        if (responseBox) responseBox.innerText = "Error: No response";
-                        return;
-                    }
-                    if (responseBox) responseBox.innerText = res.ai || "No response";
-                    window.lastAiResponse = res.ai;
-                }
-            );
-        };
-    });
-
-    // Copy button
-    const copyBtn = p.querySelector('#copy-ai');
-    if (copyBtn) {
-        copyBtn.onclick = (ev) => {
-            ev.stopPropagation();
-            const responseText = p.querySelector('#ai-response-text').innerText;
-            
-            if (responseText === "Click a style above to rephrase..." || responseText === "Generating...") {
-                return;
-            }
-            
-            navigator.clipboard.writeText(responseText).then(() => {
-                copyBtn.innerText = "✅";
-                setTimeout(() => { copyBtn.innerText = "📋"; }, 1500);
-            }).catch(err => console.error('Copy failed:', err));
-        };
-    }
-    
-    // Apply button
-    const applyBtn = p.querySelector('#apply-ai');
-    if (applyBtn) {
-        applyBtn.onclick = (ev) => {
-            ev.stopPropagation();
-            const responseText = p.querySelector('#ai-response-text').innerText;
-            
-            if (responseText === "Click a style above to rephrase..." || responseText === "Generating...") {
-                return;
-            }
-            
-            setTextInElement(target, responseText);
-            showQuickToast('✓ Text replaced');
-            p.remove();
-        };
-    }
-
-    // Grammar fix button
-    const gmBtn = p.querySelector('.fix-btn');
-    if (gmBtn && suggestion && match) {
-        gmBtn.onclick = (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            replaceTextRange(target, match.offset, match.length, suggestion);
-            showQuickToast('✓ Fixed');
-            p.remove();
-            
-            setTimeout(() => {
-                const newText = getTextFromElement(target);
-                if (newText && newText.length > 3) {
-                    checkText(target);
-                }
-            }, 500);
-        };
-    }
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
 }
 
 // ============================================================================
 // TEXT CHECKING
 // ============================================================================
 
-function checkText(target) {
-    if (!target) return;
+/**
+ * Perform grammar check on textarea
+ */
+function checkText(textarea) {
+    if (!textarea || !isTextarea(textarea)) return;
     
-    const text = getTextFromElement(target);
+    const text = getTextFromTextarea(textarea);
     
-    if (text && text.length > 3 && chrome.runtime?.id) {
-        chrome.runtime.sendMessage(
-            { action: "checkText", text: text },
-            (res) => {
-                if (chrome.runtime.lastError) return;
-                if (!res) return;
-                
-                currentMatches = res.grammar || [];
-                window.lastAiResponse = res.ai;
-                
-                if (currentMatches.length > 0 && target && !target.isContentEditable) {
-                    createMirror(target);
-                    highlightAll(text, currentMatches, target);
-                } else {
-                    if (mirrorDiv) mirrorDiv.innerHTML = '';
-                }
-            }
-        );
-    } else {
-        if (mirrorDiv) mirrorDiv.innerHTML = '';
+    // Don't check if empty or too short
+    if (!text || text.trim().length < 3) {
+        clearMirror();
+        return;
     }
+    
+    // Send message to background script
+    chrome.runtime.sendMessage(
+        { action: 'checkText', text: text, style: 'professional' },
+        (response) => {
+            if (chrome.runtime.lastError) {
+                console.warn('Extension disconnected:', chrome.runtime.lastError);
+                return;
+            }
+            
+            if (!response) {
+                console.warn('No response from background script');
+                return;
+            }
+            
+            // Debug: Log API response
+            console.log('Grammar check response:', response);
+            
+            currentMatches = response.grammar || [];
+            console.log('Matches found:', currentMatches.length);
+            
+            // Update highlight layer
+            if (currentMatches.length > 0 && textarea) {
+                createMirror(textarea);
+                highlightErrors(text, currentMatches, textarea);
+            } else {
+                clearMirror();
+            }
+        }
+    );
+}
+
+/**
+ * Show style selector popup
+ */
+function showStyleSelector(textarea, text) {
+    // Remove existing popups
+    const existing = document.getElementById('lt-style-popup');
+    if (existing) existing.remove();
+    
+    const popup = document.createElement('div');
+    popup.id = 'lt-style-popup';
+    
+    // Get position
+    const rect = textarea.getBoundingClientRect();
+    popup.style.cssText = `
+        position: fixed !important;
+        background: #1f1f1f !important;
+        border: 1px solid #404040 !important;
+        border-radius: 6px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        z-index: 200000 !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        min-width: 300px !important;
+        max-width: 400px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        color: #fff !important;
+        font-size: 13px !important;
+        top: ${rect.top + 100}px !important;
+        left: ${Math.max(rect.left + 20, 10)}px !important;
+    `;
+    
+    // Add content
+    popup.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #404040; font-weight: 600;">
+            <strong>Rephrase With AI</strong>
+            <button type="button" style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 20px; padding: 0; width: 24px; height: 24px; font-family: inherit;" class="lt-style-close" aria-label="Close">×</button>
+        </div>
+        <div style="padding: 12px 14px;">
+            <p style="margin: 0 0 12px 0; color: #999; font-size: 12px;">Choose a writing style:</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button type="button" class="lt-style-btn" data-style="professional" style="padding: 10px; background: linear-gradient(135deg, #2a4a6a 0%, #1a3a5a 100%); border: 1px solid #4a6a8a; border-radius: 4px; color: #7ab8e6; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; text-align: left;">
+                    📝 Professional<br><span style="font-size: 11px; color: #999;">Formal & clear</span>
+                </button>
+                <button type="button" class="lt-style-btn" data-style="casual" style="padding: 10px; background: linear-gradient(135deg, #2a4a2a 0%, #1a3a1a 100%); border: 1px solid #4a6a4a; border-radius: 4px; color: #7ab87a; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; text-align: left;">
+                    💬 Casual<br><span style="font-size: 11px; color: #999;">Friendly & natural</span>
+                </button>
+                <button type="button" class="lt-style-btn" data-style="academic" style="padding: 10px; background: linear-gradient(135deg, #4a2a6a 0%, #3a1a5a 100%); border: 1px solid #6a4a8a; border-radius: 4px; color: #b87ab8; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; text-align: left;">
+                    🎓 Academic<br><span style="font-size: 11px; color: #999;">Scholarly & sophisticated</span>
+                </button>
+                <button type="button" class="lt-style-btn" data-style="short" style="padding: 10px; background: linear-gradient(135deg, #6a4a2a 0%, #5a3a1a 100%); border: 1px solid #8a6a4a; border-radius: 4px; color: #e6b87a; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; text-align: left;">
+                    ⚡ Concise<br><span style="font-size: 11px; color: #999;">Short & direct</span>
+                </button>
+            </div>
+        </div>
+        <div style="padding: 12px 14px; border-top: 1px solid #404040;">
+            <p id="lt-rephrase-status" style="margin: 0; color: #999; font-size: 12px; text-align: center;">Select a style to generate suggestions</p>
+        </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    // Close button
+    popup.querySelector('.lt-style-close').addEventListener('click', () => {
+        popup.remove();
+    });
+    
+    // Style buttons
+    popup.querySelectorAll('.lt-style-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const style = btn.getAttribute('data-style');
+            requestAISuggestion(textarea, text, style, popup);
+        });
+        
+        btn.addEventListener('mouseenter', () => {
+            btn.style.transform = 'scale(1.02)';
+            btn.style.boxShadow = '0 2px 8px rgba(122, 184, 230, 0.3)';
+        });
+        
+        btn.addEventListener('mouseleave', () => {
+            btn.style.transform = 'scale(1)';
+            btn.style.boxShadow = 'none';
+        });
+    });
+}
+
+/**
+ * Request AI suggestion with specific style
+ */
+function requestAISuggestion(textarea, text, style, popup) {
+    const statusEl = popup.querySelector('#lt-rephrase-status');
+    statusEl.textContent = 'Generating...';
+    statusEl.style.color = '#7ab8e6';
+    
+    console.log('Requesting AI suggestion with style:', style);
+    
+    chrome.runtime.sendMessage(
+        { action: 'checkText', text: text, style: style },
+        (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error:', chrome.runtime.lastError);
+                statusEl.textContent = 'Error - ensure Ollama is running';
+                statusEl.style.color = '#d73131';
+                return;
+            }
+            
+            if (!response || !response.ai) {
+                statusEl.textContent = 'No suggestions available';
+                statusEl.style.color = '#999';
+                return;
+            }
+            
+            console.log('AI Response:', response.ai);
+            
+            // Show AI popup
+            showAIPopup(textarea, response.ai);
+            popup.remove();
+        }
+    );
+}
+
+/**
+ * Perform full check with AI suggestions
+ */
+function performCheck(textarea) {
+    if (!textarea || !isTextarea(textarea)) return;
+    
+    const text = getTextFromTextarea(textarea);
+    
+    if (!text || text.trim().length < 3) {
+        showToast('Please enter some text');
+        return;
+    }
+    
+    // Show style selector
+    showStyleSelector(textarea, text);
 }
 
 // ============================================================================
-// EVENT HANDLERS
+// EVENT LISTENERS
 // ============================================================================
 
+/**
+ * Listen for input changes
+ */
 document.addEventListener('input', (e) => {
-    const target = e.target;
-    if (!isEditableElement(target)) return;
-
-    currentTarget = target;
+    if (!isTextarea(e.target)) return;
     
-    if (!floatingButton || floatingButton._target !== target) {
-        createFloatingButton(target);
-        if (floatingButton) {
-            floatingButton._target = target;
-        }
-    }
+    currentTarget = e.target;
     
-    clearTimeout(timer);
-    timer = setTimeout(() => checkText(target), 1000);
+    // Debounce check
+    clearTimeout(checkTimer);
+    checkTimer = setTimeout(() => checkText(e.target), 1000);
 });
 
+/**
+ * Show floating button on focus
+ */
 document.addEventListener('focusin', (e) => {
-    const target = e.target;
-    if (!isEditableElement(target)) return;
+    if (!isTextarea(e.target)) return;
     
-    currentTarget = target;
-    createFloatingButton(target);
-    if (floatingButton) {
-        floatingButton._target = target;
-    }
-    
-    if (!observedElements.has(target)) {
-        observedElements.add(target);
-    }
+    currentTarget = e.target;
+    createFloatingButton(e.target);
+    observedTextareas.add(e.target);
 });
 
+/**
+ * Hide floating button on blur
+ */
 document.addEventListener('focusout', (e) => {
-    const target = e.target;
-    if (!isEditableElement(target)) return;
+    if (!isTextarea(e.target)) return;
     
     setTimeout(() => {
-        // Only remove if the user isn't interacting with our popup
-        const activePopup = document.getElementById('ai-pop');
-        if (!activePopup && document.activeElement !== target) {
+        const popup = document.getElementById('lt-popup');
+        const aiPopup = document.getElementById('lt-ai-popup');
+        
+        // Only remove if user isn't interacting with popup
+        if (!popup && !aiPopup && document.activeElement !== e.target) {
             removeFloatingButton();
-            if (mirrorDiv) {
-                mirrorDiv.remove();
-                mirrorDiv = null;
-            }
+            clearMirror();
             currentTarget = null;
         }
-    }, 300); // Increased delay slightly for stability
+    }, 200);
 });
-window.addEventListener('resize', () => {
-    if (currentTarget && floatingButton) positionFloatingButton(currentTarget);
-    if (currentTarget && mirrorDiv) {
+
+/**
+ * Reposition elements on scroll/resize
+ */
+function handleWindowResize() {
+    if (!currentTarget || !isTextarea(currentTarget)) return;
+    
+    if (floatingButton) positionFloatingButton(currentTarget);
+    
+    if (mirrorDiv) {
         const rect = currentTarget.getBoundingClientRect();
-        mirrorDiv.style.top = `${rect.top + window.scrollY}px`;
-        mirrorDiv.style.left = `${rect.left + window.scrollX}px`;
+        const scrollY = window.scrollY || document.documentElement.scrollTop;
+        const scrollX = window.scrollX || document.documentElement.scrollLeft;
+        
+        mirrorDiv.style.top = `${rect.top + scrollY}px`;
+        mirrorDiv.style.left = `${rect.left + scrollX}px`;
     }
+}
+
+window.addEventListener('scroll', handleWindowResize, true);
+window.addEventListener('resize', handleWindowResize);
+
+/**
+ * Close popups when clicking outside
+ */
+document.addEventListener('click', (e) => {
+    const popup = document.getElementById('lt-popup');
+    const aiPopup = document.getElementById('lt-ai-popup');
+    
+    if (popup && !popup.contains(e.target)) popup.remove();
+    if (aiPopup && !aiPopup.contains(e.target)) aiPopup.remove();
 });
 
-window.addEventListener('scroll', () => {
-    if (currentTarget && floatingButton) positionFloatingButton(currentTarget);
-    if (currentTarget && mirrorDiv) {
-        const rect = currentTarget.getBoundingClientRect();
-        mirrorDiv.style.top = `${rect.top + window.scrollY}px`;
-        mirrorDiv.style.left = `${rect.left + window.scrollX}px`;
-    }
-}, true);
+// ============================================================================
+// DYNAMIC ELEMENT DETECTION
+// ============================================================================
 
-window.addEventListener('click', (e) => {
-    const popup = document.getElementById('ai-pop');
-    if (popup && !popup.contains(e.target)) {
-        popup.remove();
-    }
-});
-
-// Dynamic element detection
-const observer = new MutationObserver((mutations) => {
+/**
+ * Detect new textareas added to DOM
+ */
+const mutationObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
             if (node.nodeType === 1) {
-                if (isEditableElement(node) && !observedElements.has(node)) {
-                    observedElements.add(node);
+                // Check if node itself is textarea
+                if (isTextarea(node) && !observedTextareas.has(node)) {
+                    observedTextareas.add(node);
                 }
+                
+                // Check if node contains textareas
                 if (node.querySelectorAll) {
-                    const editables = node.querySelectorAll('textarea, input[type="text"], input[type="email"], input[type="search"], [contenteditable="true"]');
-                    editables.forEach(el => {
-                        if (isEditableElement(el) && !observedElements.has(el)) {
-                            observedElements.add(el);
+                    const textareas = node.querySelectorAll('textarea');
+                    textareas.forEach(ta => {
+                        if (!observedTextareas.has(ta)) {
+                            observedTextareas.add(ta);
                         }
                     });
                 }
@@ -645,16 +763,18 @@ const observer = new MutationObserver((mutations) => {
     });
 });
 
-observer.observe(document.body, {
+mutationObserver.observe(document.body, {
     childList: true,
     subtree: true
 });
 
+/**
+ * Initial scan on page load
+ */
 window.addEventListener('load', () => {
-    const editables = document.querySelectorAll('textarea, input[type="text"], input[type="email"], input[type="search"], input[type="url"], [contenteditable="true"]');
-    editables.forEach(el => {
-        if (isEditableElement(el)) {
-            observedElements.add(el);
+    document.querySelectorAll('textarea').forEach(textarea => {
+        if (!observedTextareas.has(textarea)) {
+            observedTextareas.add(textarea);
         }
     });
 });

@@ -1,22 +1,27 @@
 {
   "manifest_version": 3,
   "name": "AI Grammar Pro",
-  "version": "1.6",
-  "description": "Real-time grammar checking with AI-powered rephrasing",
-  "permissions": ["activeTab", "storage"],
+  "version": "2.1",
+  "description": "Real-time grammar checking with AI-powered rephrasing for textareas",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
   "host_permissions": [
     "http://192.168.6.2:8010/*",
     "http://192.168.6.2:30068/*"
   ],
-  "background": { 
-    "service_worker": "background.js" 
+  "background": {
+    "service_worker": "background.js"
   },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["content.js"],
-    "css": ["style.css"],
-    "run_at": "document_idle"
-  }],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["style.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
