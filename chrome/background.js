@@ -9,7 +9,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "checkText") {
         const stylePrompt = STYLES[request.style || 'professional'];
         
-        const ltPromise = fetch("http://localhost:8010/v2/check", {
+        const ltPromise = fetch("http://192.168.6.2:8010/v2/check", {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
@@ -28,13 +28,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return { matches: [] };
         });
 
-        const ollamaPromise = fetch("http://localhost:11434/api/generate", {
+        const ollamaPromise = fetch("http://192.168.6.2:30068/api/generate", {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json" 
             },
             body: JSON.stringify({
-                model: "llama3",
+                model: "llama3.2:1b",
                 system: stylePrompt,
                 prompt: request.text,
                 stream: false
