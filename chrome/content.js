@@ -264,7 +264,7 @@ function clearMirror() {
 // ============================================================================
 
 /**
- * Show suggestions for specific error
+ * Show suggestions for specific error - Light minimal design
  */
 function showSuggestions(match, textarea) {
     console.log('showSuggestions called with match:', match);
@@ -282,22 +282,21 @@ function showSuggestions(match, textarea) {
     
     const popup = document.createElement('div');
     popup.id = 'lt-popup';
-    popup.className = 'lt-popup';
     
-    // Apply inline styles to ensure they work
+    // Light minimal design
     popup.style.cssText = `
         position: fixed !important;
-        background: #1f1f1f !important;
-        border: 1px solid #404040 !important;
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
         border-radius: 6px !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
         z-index: 200000 !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         min-width: 280px !important;
         max-width: 400px !important;
         padding: 0 !important;
         margin: 0 !important;
-        color: #fff !important;
+        color: #333 !important;
         font-size: 13px !important;
     `;
     
@@ -322,28 +321,22 @@ function showSuggestions(match, textarea) {
     
     // Build popup content
     let content = `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #404040; font-weight: 600;">
-            <strong>Grammar Issue</strong>
-            <button type="button" style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 20px; padding: 0; width: 24px; height: 24px; font-family: inherit;" class="lt-close" aria-label="Close">×</button>
-        </div>
         <div style="padding: 12px 14px;">
-            <p style="margin: 0 0 12px 0; line-height: 1.5; color: #fff;">${escapeHtml(message)}</p>
+            <p style="margin: 0 0 10px 0; color: #333; font-size: 12px; line-height: 1.5;">${escapeHtml(message)}</p>
     `;
     
     if (replacements && replacements.length > 0) {
-        content += '<div style="display: flex; flex-direction: column; gap: 6px;">';
+        content += '<div style="display: flex; flex-direction: column; gap: 4px;">';
         replacements.slice(0, 3).forEach(replacement => {
             if (replacement && typeof replacement === 'string') {
                 content += `
-                    <button type="button" style="padding: 8px 12px; background: linear-gradient(135deg, #2a4a2a 0%, #1f3a1f 100%); border: 1px solid #4a6a4a; border-radius: 4px; color: #9abc6b; cursor: pointer; font-size: 12px; font-family: inherit; text-align: left; font-weight: 500; width: 100%; text-decoration: none; transition: all 0.2s;" class="lt-suggestion-btn" data-replacement="${escapeHtml(replacement)}">
+                    <button type="button" style="padding: 6px 10px; background: #f0f7ed; border: 1px solid #9ae6b4; border-radius: 4px; color: #22543d; cursor: pointer; font-size: 11px; font-family: inherit; text-align: left; font-weight: 500; text-decoration: none; transition: all 0.2s;" class="lt-suggestion-btn" data-replacement="${escapeHtml(replacement)}">
                         ${escapeHtml(replacement)}
                     </button>
                 `;
             }
         });
         content += '</div>';
-    } else {
-        content += '<p style="color: #999; margin: 0;">No suggestions available</p>';
     }
     
     content += '</div>';
@@ -352,15 +345,6 @@ function showSuggestions(match, textarea) {
     document.body.appendChild(popup);
     
     console.log('Popup created and added to body');
-    
-    // Close button
-    const closeBtn = popup.querySelector('.lt-close');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            console.log('Close button clicked');
-            popup.remove();
-        });
-    }
     
     // Suggestion buttons
     popup.querySelectorAll('.lt-suggestion-btn').forEach(btn => {
@@ -377,21 +361,19 @@ function showSuggestions(match, textarea) {
         
         // Add hover effects
         btn.addEventListener('mouseenter', () => {
-            btn.style.background = 'linear-gradient(135deg, #3a5a3a 0%, #2a4a2a 100%)';
-            btn.style.boxShadow = '0 2px 8px rgba(26, 136, 68, 0.3)';
-            btn.style.transform = 'translateY(-1px)';
+            btn.style.background = '#e6f7ed';
+            btn.style.borderColor = '#7cb305';
         });
         
         btn.addEventListener('mouseleave', () => {
-            btn.style.background = 'linear-gradient(135deg, #2a4a2a 0%, #1f3a1f 100%)';
-            btn.style.boxShadow = 'none';
-            btn.style.transform = 'translateY(0)';
+            btn.style.background = '#f0f7ed';
+            btn.style.borderColor = '#9ae6b4';
         });
     });
 }
 
 /**
- * Show AI rephrase popup
+ * Show AI rephrase popup - Light minimal design
  */
 function showAIPopup(textarea, aiResponse) {
     const existing = document.getElementById('lt-ai-popup');
@@ -399,30 +381,41 @@ function showAIPopup(textarea, aiResponse) {
     
     const popup = document.createElement('div');
     popup.id = 'lt-ai-popup';
-    popup.className = 'lt-ai-popup';
     
     const rect = textarea.getBoundingClientRect();
-    popup.style.top = `${rect.top + 100}px`;
-    popup.style.left = `${Math.max(rect.left + 20, 10)}px`;
+    popup.style.cssText = `
+        position: fixed !important;
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 6px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+        z-index: 200000 !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        min-width: 280px !important;
+        max-width: 400px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        color: #333 !important;
+        font-size: 13px !important;
+        top: ${rect.top + 100}px !important;
+        left: ${Math.max(rect.left + 20, 10)}px !important;
+    `;
     
     popup.innerHTML = `
-        <div class="lt-popup-header">
-            <strong>AI Suggestions</strong>
-            <button type="button" class="lt-close" aria-label="Close">×</button>
-        </div>
-        <div class="lt-popup-body">
-            <div class="lt-ai-response">${escapeHtml(aiResponse)}</div>
-            <div class="lt-popup-actions">
-                <button type="button" class="lt-btn lt-btn-copy">📋 Copy</button>
-                <button type="button" class="lt-btn lt-btn-apply">✓ Apply</button>
+        <div style="padding: 12px 14px;">
+            <p style="margin: 0 0 12px 0; color: #333; font-size: 13px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap;">${escapeHtml(aiResponse)}</p>
+            <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                <button type="button" class="lt-btn-copy" style="padding: 6px 10px; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; color: #666; cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 500; transition: all 0.2s;">
+                    📋 Copy
+                </button>
+                <button type="button" class="lt-btn-apply" style="padding: 6px 10px; background: #52c41a; border: 1px solid #52c41a; border-radius: 4px; color: white; cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 500; transition: all 0.2s;">
+                    ✓ Apply
+                </button>
             </div>
         </div>
     `;
     
     document.body.appendChild(popup);
-    
-    // Close button
-    popup.querySelector('.lt-close').addEventListener('click', () => popup.remove());
     
     // Copy button
     popup.querySelector('.lt-btn-copy').addEventListener('click', () => {
@@ -431,11 +424,31 @@ function showAIPopup(textarea, aiResponse) {
         });
     });
     
+    popup.querySelector('.lt-btn-copy').addEventListener('mouseenter', (e) => {
+        e.target.style.background = '#eeeeee';
+        e.target.style.borderColor = '#d0d0d0';
+    });
+    
+    popup.querySelector('.lt-btn-copy').addEventListener('mouseleave', (e) => {
+        e.target.style.background = '#f5f5f5';
+        e.target.style.borderColor = '#e0e0e0';
+    });
+    
     // Apply button
     popup.querySelector('.lt-btn-apply').addEventListener('click', () => {
         setTextInTextarea(textarea, aiResponse);
         showToast('✓ Text replaced');
         popup.remove();
+    });
+    
+    popup.querySelector('.lt-btn-apply').addEventListener('mouseenter', (e) => {
+        e.target.style.background = '#389e0d';
+        e.target.style.borderColor = '#389e0d';
+    });
+    
+    popup.querySelector('.lt-btn-apply').addEventListener('mouseleave', (e) => {
+        e.target.style.background = '#52c41a';
+        e.target.style.borderColor = '#52c41a';
     });
 }
 
@@ -518,7 +531,7 @@ function checkText(textarea) {
 }
 
 /**
- * Show style selector popup
+ * Show style selector popup - Light minimal design
  */
 function showStyleSelector(textarea, text) {
     // Remove existing popups
@@ -532,56 +545,47 @@ function showStyleSelector(textarea, text) {
     const rect = textarea.getBoundingClientRect();
     popup.style.cssText = `
         position: fixed !important;
-        background: #1f1f1f !important;
-        border: 1px solid #404040 !important;
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
         border-radius: 6px !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
         z-index: 200000 !important;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        min-width: 300px !important;
+        min-width: 320px !important;
         max-width: 400px !important;
         padding: 0 !important;
         margin: 0 !important;
-        color: #fff !important;
+        color: #333 !important;
         font-size: 13px !important;
         top: ${rect.top + 100}px !important;
         left: ${Math.max(rect.left + 20, 10)}px !important;
     `;
     
-    // Add content
+    // Add content - Minimal light design
     popup.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #404040; font-weight: 600;">
-            <strong>Rephrase With AI</strong>
-            <button type="button" style="background: none; border: none; color: #ccc; cursor: pointer; font-size: 20px; padding: 0; width: 24px; height: 24px; font-family: inherit;" class="lt-style-close" aria-label="Close">×</button>
-        </div>
         <div style="padding: 12px 14px;">
-            <p style="margin: 0 0 12px 0; color: #999; font-size: 12px;">Choose a writing style:</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <button type="button" class="lt-style-btn" data-style="professional" style="padding: 10px; background: linear-gradient(135deg, #2a4a6a 0%, #1a3a5a 100%); border: 1px solid #4a6a8a; border-radius: 4px; color: #7ab8e6; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; text-align: left;">
-                    📝 Professional<br><span style="font-size: 11px; color: #999;">Formal & clear</span>
-                </button>
-                <button type="button" class="lt-style-btn" data-style="casual" style="padding: 10px; background: linear-gradient(135deg, #2a4a2a 0%, #1a3a1a 100%); border: 1px solid #4a6a4a; border-radius: 4px; color: #7ab87a; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; text-align: left;">
-                    💬 Casual<br><span style="font-size: 11px; color: #999;">Friendly & natural</span>
-                </button>
-                <button type="button" class="lt-style-btn" data-style="academic" style="padding: 10px; background: linear-gradient(135deg, #4a2a6a 0%, #3a1a5a 100%); border: 1px solid #6a4a8a; border-radius: 4px; color: #b87ab8; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; text-align: left;">
-                    🎓 Academic<br><span style="font-size: 11px; color: #999;">Scholarly & sophisticated</span>
-                </button>
-                <button type="button" class="lt-style-btn" data-style="short" style="padding: 10px; background: linear-gradient(135deg, #6a4a2a 0%, #5a3a1a 100%); border: 1px solid #8a6a4a; border-radius: 4px; color: #e6b87a; cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 500; text-align: left;">
-                    ⚡ Concise<br><span style="font-size: 11px; color: #999;">Short & direct</span>
-                </button>
+            <div style="margin-bottom: 12px;">
+                <div style="font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">✨ AI Rephrase Options</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                    <button type="button" class="lt-style-btn" data-style="professional" style="padding: 8px 10px; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; color: #666; cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 500; text-align: center; transition: all 0.2s;">
+                        Professional
+                    </button>
+                    <button type="button" class="lt-style-btn" data-style="casual" style="padding: 8px 10px; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; color: #666; cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 500; text-align: center; transition: all 0.2s;">
+                        Casual
+                    </button>
+                    <button type="button" class="lt-style-btn" data-style="academic" style="padding: 8px 10px; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; color: #666; cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 500; text-align: center; transition: all 0.2s;">
+                        Academic
+                    </button>
+                    <button type="button" class="lt-style-btn" data-style="short" style="padding: 8px 10px; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; color: #666; cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 500; text-align: center; transition: all 0.2s;">
+                        Concise
+                    </button>
+                </div>
             </div>
-        </div>
-        <div style="padding: 12px 14px; border-top: 1px solid #404040;">
-            <p id="lt-rephrase-status" style="margin: 0; color: #999; font-size: 12px; text-align: center;">Select a style to generate suggestions</p>
+            <p id="lt-rephrase-status" style="margin: 0; color: #999; font-size: 12px; text-align: center; min-height: 18px;">Click a style to rephrase</p>
         </div>
     `;
     
     document.body.appendChild(popup);
-    
-    // Close button
-    popup.querySelector('.lt-style-close').addEventListener('click', () => {
-        popup.remove();
-    });
     
     // Style buttons
     popup.querySelectorAll('.lt-style-btn').forEach(btn => {
@@ -591,13 +595,13 @@ function showStyleSelector(textarea, text) {
         });
         
         btn.addEventListener('mouseenter', () => {
-            btn.style.transform = 'scale(1.02)';
-            btn.style.boxShadow = '0 2px 8px rgba(122, 184, 230, 0.3)';
+            btn.style.background = '#eeeeee';
+            btn.style.borderColor = '#d0d0d0';
         });
         
         btn.addEventListener('mouseleave', () => {
-            btn.style.transform = 'scale(1)';
-            btn.style.boxShadow = 'none';
+            btn.style.background = '#f5f5f5';
+            btn.style.borderColor = '#e0e0e0';
         });
     });
 }
