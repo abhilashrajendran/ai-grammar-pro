@@ -1,62 +1,102 @@
 /**
- * AI Grammar Pro+ - Enhanced Background Service Worker
- * Features: Request caching, retry logic, performance optimization, settings management
+ * AI Grammar Pro+ - Enhanced Background Service Worker v3.1
+ * Features: Dynamic configuration, theme management, improved error handling
  */
 
 const CONSTANTS = {
     timeout: 15000,
     maxRetries: 2,
-    cacheTimeout: 300000 // 5 minutes
+    cacheTimeout: 300000, // 5 minutes
+    maxCacheSize: 100 // Limit cache entries
+};
+
+const DEFAULT_SETTINGS = {
+    // Service URLs - user must configure
+    languageToolUrl: '',
+    ollamaUrl: '',
+    ollamaModel: 'llama3.2:1b',
+    
+    // UI Settings
+    autoCheck: true,
+    checkDelay: 1000,
+    enabledStyles: ['professional', 'casual', 'short', 'academic', 'creative', 'technical', 'simple', 'expand'],
+    defaultStyle: 'professional',
+    theme: 'auto', // 'auto', 'light', 'dark'
+    showStatistics: true,
+    highlightColor: 'rgba(255, 77, 77, 0.3)',
+    enableShortcuts: true,
+    
+    // First run flag
+    isFirstRun: true
 };
 
 const STYLE_PROMPTS = {
     professional: {
         prompt: 'Rewrite this for a business context. Be clear, formal, and authoritative. Maintain the core message while using professional language.',
-        icon: '💼'
+        icon: '💼',
+        label: 'Professional'
     },
     casual: {
         prompt: 'Rewrite this to sound natural and friendly, like a conversation with a friend. Keep it relaxed and approachable.',
-        icon: '😊'
+        icon: '😊',
+        label: 'Casual'
     },
     short: {
         prompt: 'Shorten this text significantly while keeping the core meaning. Be extremely concise and remove all unnecessary words.',
-        icon: '✂️'
+        icon: '✂️',
+        label: 'Concise'
     },
     academic: {
         prompt: 'Rewrite this to sound scholarly and sophisticated. Use advanced vocabulary and formal academic tone.',
-        icon: '🎓'
+        icon: '🎓',
+        label: 'Academic'
     },
     creative: {
         prompt: 'Rewrite this with creative flair and engaging language. Make it more vivid and interesting to read.',
-        icon: '✨'
+        icon: '✨',
+        label: 'Creative'
     },
     technical: {
         prompt: 'Rewrite this using precise technical language. Be specific, accurate, and objective.',
-        icon: '⚙️'
+        icon: '⚙️',
+        label: 'Technical'
     },
     simple: {
         prompt: 'Simplify this text for easy understanding. Use simple words and clear, straightforward sentences.',
-        icon: '📝'
+        icon: '📝',
+        label: 'Simple'
     },
     expand: {
         prompt: 'Expand this text with more detail and elaboration. Add supporting information and examples while keeping the main idea.',
-        icon: '📈'
+        icon: '📈',
+        label: 'Expand'
     }
 };
 
-// Simple cache for grammar checks
+// Caches with size limits
 const grammarCache = new Map();
 const aiCache = new Map();
 
 /**
- * Clean old cache entries
+ * Clean old cache entries and enforce size limits
  */
-function cleanCache(cache) {
+function cleanCache(cache, maxSize = CONSTANTS.maxCacheSize) {
     const now = Date.now();
+    
+    // Remove expired entries
     for (const [key, value] of cache.entries()) {
         if (now - value.timestamp > CONSTANTS.cacheTimeout) {
             cache.delete(key);
         }
+    }
+    
+    // Enforce max size (remove oldest entries)
+    if (cache.size > maxSize) {
+        const entries = Array.from(cache.entries())
+            .sort((a, b) => a[1].timestamp - b[1].timestamp);
+        
+        const toRemove = entries.slice(0, cache.size - maxSize);
+        toRemove.forEach(([key]) => cache.delete(key));
     }
 }
 
@@ -65,6 +105,18 @@ function cleanCache(cache) {
  */
 function getCacheKey(text, extra = '') {
     return `${text.substring(0, 100)}_${text.length}_${extra}`;
+}
+
+/**
+ * Validate URL format
+ */
+function isValidUrl(string) {
+    try {
+        const url = new URL(string);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+        return false;
+    }
 }
 
 /**
@@ -83,6 +135,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else if (request.action === 'getStylePrompts') {
         sendResponse({ styles: STYLE_PROMPTS });
         return true;
+    } else if (request.action === 'testConnection') {
+        handleTestConnection(request, sendResponse);
+        return true;
+    } else if (request.action === 'applyTheme') {
+        handleApplyTheme(request, sendResponse);
+        return true;
     }
 });
 
@@ -90,12 +148,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * Get current configuration from storage with fallbacks
  */
 async function getServiceConfig() {
-    const settings = await chrome.storage.sync.get({
-        // Default values if storage is empty
-        languageToolUrl: 'http://192.168.6.2:8010/v2/check',
-        ollamaUrl: 'http://192.168.6.2:30068/api/generate',
-        ollamaModel: 'llama3.2:1b'
-    });
+    const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
     return settings;
 }
 
@@ -117,17 +170,38 @@ async function handleCheckText(request, sendResponse) {
     }
     
     try {
-        const promises = [checkGrammar(text)];
+        const config = await getServiceConfig();
         
-        if (!grammarOnly) {
-            promises.push(generateAISuggestion(text, style));
+        // Validate configuration
+        if (!config.languageToolUrl && !grammarOnly) {
+            sendResponse({
+                grammar: [],
+                ai: '',
+                error: 'Please configure LanguageTool URL in extension settings',
+                needsConfiguration: true
+            });
+            return;
+        }
+        
+        const promises = [];
+        
+        if (config.languageToolUrl) {
+            promises.push(checkGrammar(text, config));
+        } else {
+            promises.push(Promise.resolve({ matches: [] }));
+        }
+        
+        if (!grammarOnly && config.ollamaUrl) {
+            promises.push(generateAISuggestion(text, style, config));
+        } else {
+            promises.push(Promise.resolve(''));
         }
         
         const [grammarData, aiData] = await Promise.all(promises);
         
         sendResponse({
             grammar: grammarData.matches || [],
-            ai: aiData || (grammarOnly ? '' : 'Unable to generate suggestions'),
+            ai: aiData || '',
             statistics: grammarData.language ? {
                 detectedLanguage: grammarData.language.name,
                 issuesFound: (grammarData.matches || []).length
@@ -137,8 +211,8 @@ async function handleCheckText(request, sendResponse) {
         console.error('Error in checkText:', error);
         sendResponse({
             grammar: [],
-            ai: 'Error occurred during processing',
-            error: error.message
+            ai: '',
+            error: error.message || 'An error occurred during processing'
         });
     }
 }
@@ -146,7 +220,7 @@ async function handleCheckText(request, sendResponse) {
 /**
  * Check grammar using LanguageTool with caching and retry
  */
-async function checkGrammar(text) {
+async function checkGrammar(text, config) {
     const cacheKey = getCacheKey(text, 'grammar');
     
     // Check cache
@@ -155,10 +229,10 @@ async function checkGrammar(text) {
         return cached.data;
     }
     
-    // --- NEW: Fetch URL dynamically ---
-    const config = await getServiceConfig();
-    const ltUrl = config.languageToolUrl;
-
+    if (!config.languageToolUrl || !isValidUrl(config.languageToolUrl)) {
+        throw new Error('Invalid LanguageTool URL');
+    }
+    
     let lastError;
     
     for (let attempt = 0; attempt < CONSTANTS.maxRetries; attempt++) {
@@ -166,14 +240,14 @@ async function checkGrammar(text) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), CONSTANTS.timeout);
             
-            const response = await fetch(ltUrl, {
+            const response = await fetch(config.languageToolUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
                 body: new URLSearchParams({
                     text: text,
-                    language: 'auto', // Auto-detect language
+                    language: 'auto',
                     enabledOnly: 'false'
                 }),
                 signal: controller.signal
@@ -182,7 +256,7 @@ async function checkGrammar(text) {
             clearTimeout(timeoutId);
             
             if (!response.ok) {
-                throw new Error(`LanguageTool error: ${response.status}`);
+                throw new Error(`LanguageTool returned ${response.status}`);
             }
             
             const data = await response.json();
@@ -196,23 +270,24 @@ async function checkGrammar(text) {
             return data;
         } catch (error) {
             lastError = error;
-            console.warn(`Grammar check attempt ${attempt + 1} failed:`, error.message);
+            
+            if (error.name === 'AbortError') {
+                lastError = new Error('Request timed out. Check your LanguageTool service.');
+            }
             
             if (attempt < CONSTANTS.maxRetries - 1) {
-                // Wait before retry (exponential backoff)
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
             }
         }
     }
     
-    console.error('Grammar check failed after retries:', lastError);
-    return { matches: [] };
+    throw new Error(`Grammar check failed: ${lastError.message}`);
 }
 
 /**
  * Generate AI suggestion using Ollama with caching and streaming support
  */
-async function generateAISuggestion(text, style) {
+async function generateAISuggestion(text, style, config) {
     const cacheKey = getCacheKey(text, style);
     
     // Check cache
@@ -221,12 +296,11 @@ async function generateAISuggestion(text, style) {
         return cached.data;
     }
     
-    const config = await getServiceConfig();
-    const aiUrl = config.ollamaUrl;
-    const aiModel = config.ollamaModel;
-
-    const styleConfig = STYLE_PROMPTS[style] || STYLE_PROMPTS.professional;
+    if (!config.ollamaUrl || !isValidUrl(config.ollamaUrl)) {
+        throw new Error('Invalid Ollama URL');
+    }
     
+    const styleConfig = STYLE_PROMPTS[style] || STYLE_PROMPTS.professional;
     let lastError;
     
     for (let attempt = 0; attempt < CONSTANTS.maxRetries; attempt++) {
@@ -234,13 +308,13 @@ async function generateAISuggestion(text, style) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), CONSTANTS.timeout);
             
-            const response = await fetch(aiUrl, {
+            const response = await fetch(config.ollamaUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: aiModel,
+                    model: config.ollamaModel || 'llama3.2:1b',
                     system: styleConfig.prompt,
                     prompt: text,
                     stream: false,
@@ -256,7 +330,7 @@ async function generateAISuggestion(text, style) {
             clearTimeout(timeoutId);
             
             if (!response.ok) {
-                throw new Error(`Ollama error: ${response.status}`);
+                throw new Error(`Ollama returned ${response.status}`);
             }
             
             const data = await response.json();
@@ -271,7 +345,10 @@ async function generateAISuggestion(text, style) {
             return result;
         } catch (error) {
             lastError = error;
-            console.warn(`AI suggestion attempt ${attempt + 1} failed:`, error.message);
+            
+            if (error.name === 'AbortError') {
+                lastError = new Error('Request timed out. Check your Ollama service.');
+            }
             
             if (attempt < CONSTANTS.maxRetries - 1) {
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
@@ -279,8 +356,69 @@ async function generateAISuggestion(text, style) {
         }
     }
     
-    console.error('AI suggestion failed after retries:', lastError);
-    return '';
+    throw new Error(`AI suggestion failed: ${lastError.message}`);
+}
+
+/**
+ * Test connection to services
+ */
+async function handleTestConnection(request, sendResponse) {
+    const { service, url } = request;
+    
+    if (!isValidUrl(url)) {
+        sendResponse({ success: false, error: 'Invalid URL format' });
+        return;
+    }
+    
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(url, {
+            method: 'HEAD',
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        sendResponse({ 
+            success: response.ok,
+            status: response.status,
+            error: response.ok ? null : `HTTP ${response.status}`
+        });
+    } catch (error) {
+        sendResponse({ 
+            success: false, 
+            error: error.name === 'AbortError' ? 'Connection timeout' : error.message 
+        });
+    }
+}
+
+/**
+ * Apply theme to all tabs
+ */
+async function handleApplyTheme(request, sendResponse) {
+    const { theme } = request;
+    
+    try {
+        // Save theme preference
+        await chrome.storage.sync.set({ theme });
+        
+        // Notify all content scripts to update theme
+        const tabs = await chrome.tabs.query({});
+        tabs.forEach(tab => {
+            chrome.tabs.sendMessage(tab.id, {
+                action: 'updateTheme',
+                theme: theme
+            }).catch(() => {
+                // Ignore errors for tabs where content script isn't loaded
+            });
+        });
+        
+        sendResponse({ success: true });
+    } catch (error) {
+        sendResponse({ success: false, error: error.message });
+    }
 }
 
 /**
@@ -288,15 +426,7 @@ async function generateAISuggestion(text, style) {
  */
 async function handleGetSettings(sendResponse) {
     try {
-        const settings = await chrome.storage.sync.get({
-            autoCheck: true,
-            checkDelay: 1000,
-            enabledStyles: Object.keys(STYLE_PROMPTS),
-            defaultStyle: 'professional',
-            showStatistics: true,
-            highlightColor: 'rgba(255, 77, 77, 0.3)',
-            enableShortcuts: true
-        });
+        const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
         sendResponse({ settings });
     } catch (error) {
         console.error('Error getting settings:', error);
@@ -309,7 +439,24 @@ async function handleGetSettings(sendResponse) {
  */
 async function handleSaveSettings(settings, sendResponse) {
     try {
+        // Validate URLs before saving
+        if (settings.languageToolUrl && !isValidUrl(settings.languageToolUrl)) {
+            sendResponse({ success: false, error: 'Invalid LanguageTool URL' });
+            return;
+        }
+        
+        if (settings.ollamaUrl && !isValidUrl(settings.ollamaUrl)) {
+            sendResponse({ success: false, error: 'Invalid Ollama URL' });
+            return;
+        }
+        
         await chrome.storage.sync.set(settings);
+        
+        // Apply theme if changed
+        if (settings.theme) {
+            handleApplyTheme({ theme: settings.theme }, () => {});
+        }
+        
         sendResponse({ success: true });
     } catch (error) {
         console.error('Error saving settings:', error);
@@ -320,7 +467,8 @@ async function handleSaveSettings(settings, sendResponse) {
 /**
  * Context menu setup
  */
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+    // Create context menus
     chrome.contextMenus.create({
         id: 'aigrammar-check',
         title: 'Check Grammar & Rephrase',
@@ -344,6 +492,13 @@ chrome.runtime.onInstalled.addListener(() => {
         title: 'Rephrase: Concise',
         contexts: ['editable']
     });
+    
+    // Show onboarding for first install
+    if (details.reason === 'install') {
+        chrome.tabs.create({
+            url: 'options.html?firstRun=true'
+        });
+    }
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -368,3 +523,5 @@ chrome.commands.onCommand.addListener((command) => {
         }
     });
 });
+
+console.log('AI Grammar Pro+ Background Service Worker loaded');

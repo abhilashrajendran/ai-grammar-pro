@@ -1,16 +1,16 @@
 {
   "manifest_version": 3,
   "name": "AI Grammar Pro+",
-  "version": "3.0.0",
-  "description": "Advanced grammar checking with AI-powered rephrasing, style adaptation, and real-time suggestions",
+  "version": "3.1.0",
+  "description": "Professional grammar checking with AI-powered rephrasing. Self-hosted & privacy-focused. Supports LanguageTool and Ollama.",
   "permissions": [
     "activeTab",
     "storage",
     "contextMenus"
   ],
   "host_permissions": [
-    "http://192.168.6.2:8010/*",
-    "http://192.168.6.2:30068/*"
+    "http://*/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -52,5 +52,8 @@
       },
       "description": "Quick rephrase with default style"
     }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   }
 }
