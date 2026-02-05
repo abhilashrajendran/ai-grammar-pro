@@ -55,6 +55,9 @@ function applySettingsToUI(settings) {
     // Default style
     document.getElementById('default-style').value = settings.defaultStyle || 'professional';
     
+    // In loadSettings/applySettingsToUI
+    document.getElementById('theme-select').value = settings.theme || 'auto';
+
     // Show statistics
     const showStatsToggle = document.getElementById('show-stats-toggle');
     if (settings.showStatistics) {
@@ -79,6 +82,15 @@ function applySettingsToUI(settings) {
             checkbox.checked = enabledStyles.includes(styleKey);
         }
     });
+
+    document.getElementById('lt-url').value = 
+                settings.languageToolUrl || 'http://192.168.6.2:8010/v2/check';
+            
+    document.getElementById('ollama-url').value = 
+        settings.ollamaUrl || 'http://192.168.6.2:30068/api/generate';
+        
+    document.getElementById('ollama-model').value = 
+        settings.ollamaModel || 'llama3.2:1b';
 }
 
 function populateStyleCheckboxes() {
@@ -130,8 +142,12 @@ async function saveSettings() {
         autoCheck: document.getElementById('auto-check-toggle').classList.contains('active'),
         checkDelay: parseInt(document.getElementById('check-delay').value),
         defaultStyle: document.getElementById('default-style').value,
+        theme: document.getElementById('theme-select').value,
         showStatistics: document.getElementById('show-stats-toggle').classList.contains('active'),
         enableShortcuts: document.getElementById('shortcuts-toggle').classList.contains('active'),
+        languageToolUrl: document.getElementById('lt-url').value.trim(),
+        ollamaUrl: document.getElementById('ollama-url').value.trim(),
+        ollamaModel: document.getElementById('ollama-model').value.trim(),
         enabledStyles: []
     };
     

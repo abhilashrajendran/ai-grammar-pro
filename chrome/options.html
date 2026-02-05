@@ -275,7 +275,19 @@
                         <div class="toggle-switch active" id="auto-check-toggle"></div>
                     </div>
                 </div>
-                
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>Theme</h4>
+                        <p>Choose your preferred appearance</p>
+                    </div>
+                    <div class="setting-control">
+                        <select id="theme-select" class="select-box">
+                            <option value="auto">System Default</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Check Delay (ms)</h4>
@@ -326,7 +338,47 @@
                 </div>
             </div>
         </div>
-        
+
+         <div class="settings-card">
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="section-icon">✨</span>
+                    Language tool & Ollama settings
+                    <span class="section-icon">✨</span>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>LanguageTool URL</h4>
+                        <p>Endpoint for grammar checking (e.g., http://localhost:8010/v2/check)</p>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" id="lt-url" class="select-box" style="width: 250px;" placeholder="http://localhost:8010/v2/check">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>Ollama URL</h4>
+                        <p>Endpoint for AI generation (e.g., http://localhost:11434/api/generate)</p>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" id="ollama-url" class="select-box" style="width: 250px;" placeholder="http://localhost:11434/api/generate">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>Ollama Model</h4>
+                        <p>The model tag to use (e.g., llama3.2:1b)</p>
+                    </div>
+                    <div class="setting-control">
+                        <input type="text" id="ollama-model" class="input-number" style="width: 150px; text-align: left;" placeholder="llama3.2:1b">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="settings-card">
             <div class="settings-section">
                 <div class="section-title">

@@ -44,6 +44,7 @@ async function loadSettings() {
         checkDelay: 1000,
         enabledStyles: ['professional', 'casual', 'short', 'academic', 'creative', 'technical', 'simple', 'expand'],
         defaultStyle: 'professional',
+        theme: 'auto',
         showStatistics: true,
         highlightColor: 'rgba(255, 77, 77, 0.3)',
         enableShortcuts: true
@@ -328,6 +329,13 @@ function highlightErrors(text, matches, textarea) {
     }
 }
 
+// Helper to get the correct class
+function getThemeClass() {
+    if (userSettings.theme === 'dark') return 'agp-theme-dark';
+    if (userSettings.theme === 'light') return 'agp-theme-light';
+    return ''; // 'auto' relies on CSS media query
+}
+
 /**
  * Clear mirror
  */
@@ -390,7 +398,7 @@ function showSuggestions(match, textarea) {
     
     const popup = document.createElement('div');
     popup.id = 'agp-grammar-popup';
-    popup.className = 'agp-popup';
+    popup.className = `agp-popup ${getThemeClass()}`;
     
     const rect = textarea.getBoundingClientRect();
     popup.style.cssText = `
@@ -417,6 +425,10 @@ function showSuggestions(match, textarea) {
     `;
     
     document.body.appendChild(popup);
+
+    const header = popup.querySelector('.agp-popup-header');
+    makeDraggable(popup, header);
+
     currentPopup = popup;
     
     // Close button
@@ -475,7 +487,7 @@ async function showAIPopup(textarea, initialText = null) {
     
     const popup = document.createElement('div');
     popup.id = 'agp-ai-popup';
-    popup.className = 'agp-popup';
+    popup.className = `agp-popup ${getThemeClass()}`;
     
     const rect = textarea.getBoundingClientRect();
     popup.style.cssText = `
@@ -510,6 +522,10 @@ async function showAIPopup(textarea, initialText = null) {
     `;
     
     document.body.appendChild(popup);
+
+    const header = popup.querySelector('.agp-popup-header');
+    makeDraggable(popup, header);
+    
     currentPopup = popup;
     
     // Close button
@@ -821,6 +837,56 @@ function handleWindowResize() {
         mirrorDiv.style.top = `${rect.top + scrollY}px`;
         mirrorDiv.style.left = `${rect.left + scrollX}px`;
     }
+}
+
+
+/**
+ * Make an element draggable via a handle
+ */
+function makeDraggable(element, handle) {
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    handle.style.cursor = 'move';
+
+    handle.addEventListener('mousedown', (e) => {
+        // Prevent default to avoid text selection during drag
+        e.preventDefault(); 
+        
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        
+        // Get current position
+        const rect = element.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        
+        // Temporarily remove transform centering if any, or rely on absolute positioning
+        element.style.transform = 'none';
+        element.style.margin = '0';
+        
+        // Add dragging class for styling
+        element.classList.add('agp-dragging');
+    });
+
+    // Listen on window to handle fast movements or mouse leaving the element
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        element.style.left = `${initialLeft + dx}px`;
+        element.style.top = `${initialTop + dy}px`;
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            element.classList.remove('agp-dragging');
+        }
+    });
 }
 
 window.addEventListener('scroll', handleWindowResize, true);

@@ -3,10 +3,7 @@
  * Features: Request caching, retry logic, performance optimization, settings management
  */
 
-const CONFIG = {
-    languageToolUrl: 'http://192.168.6.2:8010/v2/check',
-    ollamaUrl: 'http://192.168.6.2:30068/api/generate',
-    ollamaModel: 'llama3.2:1b',
+const CONSTANTS = {
     timeout: 15000,
     maxRetries: 2,
     cacheTimeout: 300000 // 5 minutes
@@ -57,7 +54,7 @@ const aiCache = new Map();
 function cleanCache(cache) {
     const now = Date.now();
     for (const [key, value] of cache.entries()) {
-        if (now - value.timestamp > CONFIG.cacheTimeout) {
+        if (now - value.timestamp > CONSTANTS.cacheTimeout) {
             cache.delete(key);
         }
     }
@@ -88,6 +85,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 });
+
+/**
+ * Get current configuration from storage with fallbacks
+ */
+async function getServiceConfig() {
+    const settings = await chrome.storage.sync.get({
+        // Default values if storage is empty
+        languageToolUrl: 'http://192.168.6.2:8010/v2/check',
+        ollamaUrl: 'http://192.168.6.2:30068/api/generate',
+        ollamaModel: 'llama3.2:1b'
+    });
+    return settings;
+}
 
 /**
  * Handle text checking request
@@ -141,18 +151,22 @@ async function checkGrammar(text) {
     
     // Check cache
     const cached = grammarCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp < CONFIG.cacheTimeout)) {
+    if (cached && (Date.now() - cached.timestamp < CONSTANTS.cacheTimeout)) {
         return cached.data;
     }
     
+    // --- NEW: Fetch URL dynamically ---
+    const config = await getServiceConfig();
+    const ltUrl = config.languageToolUrl;
+
     let lastError;
     
-    for (let attempt = 0; attempt < CONFIG.maxRetries; attempt++) {
+    for (let attempt = 0; attempt < CONSTANTS.maxRetries; attempt++) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
+            const timeoutId = setTimeout(() => controller.abort(), CONSTANTS.timeout);
             
-            const response = await fetch(CONFIG.languageToolUrl, {
+            const response = await fetch(ltUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -184,7 +198,7 @@ async function checkGrammar(text) {
             lastError = error;
             console.warn(`Grammar check attempt ${attempt + 1} failed:`, error.message);
             
-            if (attempt < CONFIG.maxRetries - 1) {
+            if (attempt < CONSTANTS.maxRetries - 1) {
                 // Wait before retry (exponential backoff)
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
             }
@@ -203,26 +217,30 @@ async function generateAISuggestion(text, style) {
     
     // Check cache
     const cached = aiCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp < CONFIG.cacheTimeout)) {
+    if (cached && (Date.now() - cached.timestamp < CONSTANTS.cacheTimeout)) {
         return cached.data;
     }
     
+    const config = await getServiceConfig();
+    const aiUrl = config.ollamaUrl;
+    const aiModel = config.ollamaModel;
+
     const styleConfig = STYLE_PROMPTS[style] || STYLE_PROMPTS.professional;
     
     let lastError;
     
-    for (let attempt = 0; attempt < CONFIG.maxRetries; attempt++) {
+    for (let attempt = 0; attempt < CONSTANTS.maxRetries; attempt++) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
+            const timeoutId = setTimeout(() => controller.abort(), CONSTANTS.timeout);
             
-            const response = await fetch(CONFIG.ollamaUrl, {
+            const response = await fetch(aiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: CONFIG.ollamaModel,
+                    model: aiModel,
                     system: styleConfig.prompt,
                     prompt: text,
                     stream: false,
@@ -255,7 +273,7 @@ async function generateAISuggestion(text, style) {
             lastError = error;
             console.warn(`AI suggestion attempt ${attempt + 1} failed:`, error.message);
             
-            if (attempt < CONFIG.maxRetries - 1) {
+            if (attempt < CONSTANTS.maxRetries - 1) {
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
             }
         }
