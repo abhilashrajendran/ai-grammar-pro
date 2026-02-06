@@ -1,116 +1,100 @@
 /**
- * AI Grammar Pro+ - Enhanced Background Service Worker v3.1
- * Features: Dynamic configuration, theme management, improved error handling
+ * AI Grammar Pro+ - Background Service Worker v3.1
  */
 
 const CONSTANTS = {
     timeout: 15000,
     maxRetries: 2,
-    cacheTimeout: 300000, // 5 minutes
-    maxCacheSize: 100 // Limit cache entries
+    cacheTimeout: 300000,
+    maxCacheSize: 100
 };
 
 const DEFAULT_SETTINGS = {
-    // Service URLs - user must configure
     languageToolUrl: '',
     ollamaUrl: '',
     ollamaModel: 'llama3.2:1b',
-    
-    // UI Settings
     autoCheck: true,
     checkDelay: 1000,
     enabledStyles: ['professional', 'casual', 'short', 'academic', 'creative', 'technical', 'simple', 'expand'],
     defaultStyle: 'professional',
-    theme: 'auto', // 'auto', 'light', 'dark'
+    theme: 'auto',
     showStatistics: true,
     highlightColor: 'rgba(255, 77, 77, 0.3)',
     enableShortcuts: true,
-    
-    // First run flag
     isFirstRun: true
 };
 
 const STYLE_PROMPTS = {
     professional: {
-        prompt: 'Rewrite this for a business context. Be clear, formal, and authoritative. Maintain the core message while using professional language.',
+        prompt: 'Rewrite the following text for a corporate audience. Use an active voice, avoid slang, and maintain a respectful, authoritative tone. Ensure the core message remains unchanged while improving clarity and flow.',
         icon: '💼',
         label: 'Professional'
     },
     casual: {
-        prompt: 'Rewrite this to sound natural and friendly, like a conversation with a friend. Keep it relaxed and approachable.',
+        prompt: 'Rewrite this to sound like a friendly, natural conversation. Use contractions (e.g., "don\'t" instead of "do not") and a warm tone. Keep the message helpful and approachable, as if speaking to a peer.',
         icon: '😊',
         label: 'Casual'
     },
     short: {
-        prompt: 'Shorten this text significantly while keeping the core meaning. Be extremely concise and remove all unnecessary words.',
+        prompt: 'Condense this text into its most essential points. Eliminate all filler words and redundancies. Aim for a "TL;DR" style while preserving every critical piece of information.',
         icon: '✂️',
         label: 'Concise'
     },
     academic: {
-        prompt: 'Rewrite this to sound scholarly and sophisticated. Use advanced vocabulary and formal academic tone.',
+        prompt: 'Rephrase this text using formal scholarly conventions. Utilize precise terminology, maintain an objective third-person perspective, and ensure logical transitions between ideas. Avoid anecdotal language.',
         icon: '🎓',
         label: 'Academic'
     },
     creative: {
-        prompt: 'Rewrite this with creative flair and engaging language. Make it more vivid and interesting to read.',
+        prompt: 'Infuse this text with vivid imagery and compelling word choices. Use rhetorical devices or metaphors where appropriate to make the prose more evocative, while strictly adhering to the original facts.',
         icon: '✨',
         label: 'Creative'
     },
     technical: {
-        prompt: 'Rewrite this using precise technical language. Be specific, accurate, and objective.',
+        prompt: 'Rewrite this for a technical audience. Focus on precision, specifications, and logical sequence. Use industry-standard terminology and ensure the tone is purely objective and data-driven.',
         icon: '⚙️',
         label: 'Technical'
     },
     simple: {
-        prompt: 'Simplify this text for easy understanding. Use simple words and clear, straightforward sentences.',
+        prompt: 'Rewrite this for a general audience using a 6th-grade reading level. Break down complex concepts, use short sentences, and replace jargon with common words. The goal is maximum accessibility.',
         icon: '📝',
         label: 'Simple'
     },
     expand: {
-        prompt: 'Expand this text with more detail and elaboration. Add supporting information and examples while keeping the main idea.',
+        prompt: 'Elaborate on the provided text by adding context, descriptive details, or illustrative examples. Flesh out the reasoning behind the main points without changing the original intent or meaning.',
         icon: '📈',
         label: 'Expand'
     }
 };
 
-// Caches with size limits
 const grammarCache = new Map();
 const aiCache = new Map();
 
-/**
- * Clean old cache entries and enforce size limits
- */
 function cleanCache(cache, maxSize = CONSTANTS.maxCacheSize) {
     const now = Date.now();
     
-    // Remove expired entries
     for (const [key, value] of cache.entries()) {
         if (now - value.timestamp > CONSTANTS.cacheTimeout) {
             cache.delete(key);
         }
     }
     
-    // Enforce max size (remove oldest entries)
     if (cache.size > maxSize) {
         const entries = Array.from(cache.entries())
             .sort((a, b) => a[1].timestamp - b[1].timestamp);
-        
         const toRemove = entries.slice(0, cache.size - maxSize);
         toRemove.forEach(([key]) => cache.delete(key));
     }
 }
 
-/**
- * Generate cache key
- */
 function getCacheKey(text, extra = '') {
     return `${text.substring(0, 100)}_${text.length}_${extra}`;
 }
 
-/**
- * Validate URL format
- */
 function isValidUrl(string) {
+    if (!string || string.trim() === '') {
+        return false;
+    }
     try {
         const url = new URL(string);
         return url.protocol === 'http:' || url.protocol === 'https:';
@@ -119,9 +103,6 @@ function isValidUrl(string) {
     }
 }
 
-/**
- * Main message listener
- */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'checkText') {
         handleCheckText(request, sendResponse);
@@ -144,17 +125,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-/**
- * Get current configuration from storage with fallbacks
- */
 async function getServiceConfig() {
     const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
     return settings;
 }
 
-/**
- * Handle text checking request
- */
 async function handleCheckText(request, sendResponse) {
     const { text, style = 'professional', grammarOnly = false } = request;
     
@@ -163,7 +138,6 @@ async function handleCheckText(request, sendResponse) {
         return;
     }
     
-    // Clean caches periodically
     if (Math.random() < 0.1) {
         cleanCache(grammarCache);
         cleanCache(aiCache);
@@ -171,27 +145,15 @@ async function handleCheckText(request, sendResponse) {
     
     try {
         const config = await getServiceConfig();
-        
-        // Validate configuration
-        if (!config.languageToolUrl && !grammarOnly) {
-            sendResponse({
-                grammar: [],
-                ai: '',
-                error: 'Please configure LanguageTool URL in extension settings',
-                needsConfiguration: true
-            });
-            return;
-        }
-        
         const promises = [];
         
-        if (config.languageToolUrl) {
+        if (config.languageToolUrl && isValidUrl(config.languageToolUrl)) {
             promises.push(checkGrammar(text, config));
         } else {
             promises.push(Promise.resolve({ matches: [] }));
         }
         
-        if (!grammarOnly && config.ollamaUrl) {
+        if (!grammarOnly && config.ollamaUrl && isValidUrl(config.ollamaUrl)) {
             promises.push(generateAISuggestion(text, style, config));
         } else {
             promises.push(Promise.resolve(''));
@@ -208,28 +170,32 @@ async function handleCheckText(request, sendResponse) {
             } : null
         });
     } catch (error) {
-        console.error('Error in checkText:', error);
+        let userMessage = error.message || 'An error occurred during processing';
+        
+        if (error.message && error.message.includes('Ollama returned 500')) {
+            const config = await getServiceConfig();
+            userMessage = 'Ollama error: Model may not be available. Try running: ollama pull ' + config.ollamaModel;
+        } else if (error.message && error.message.includes('LanguageTool')) {
+            userMessage = 'LanguageTool service is not responding. Check if the server is running.';
+        }
+        
         sendResponse({
             grammar: [],
             ai: '',
-            error: error.message || 'An error occurred during processing'
+            error: userMessage
         });
     }
 }
 
-/**
- * Check grammar using LanguageTool with caching and retry
- */
 async function checkGrammar(text, config) {
     const cacheKey = getCacheKey(text, 'grammar');
     
-    // Check cache
     const cached = grammarCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp < CONSTANTS.cacheTimeout)) {
         return cached.data;
     }
     
-    if (!config.languageToolUrl || !isValidUrl(config.languageToolUrl)) {
+    if (!isValidUrl(config.languageToolUrl)) {
         throw new Error('Invalid LanguageTool URL');
     }
     
@@ -261,7 +227,6 @@ async function checkGrammar(text, config) {
             
             const data = await response.json();
             
-            // Cache successful result
             grammarCache.set(cacheKey, {
                 data: data,
                 timestamp: Date.now()
@@ -284,19 +249,15 @@ async function checkGrammar(text, config) {
     throw new Error(`Grammar check failed: ${lastError.message}`);
 }
 
-/**
- * Generate AI suggestion using Ollama with caching and streaming support
- */
 async function generateAISuggestion(text, style, config) {
     const cacheKey = getCacheKey(text, style);
     
-    // Check cache
     const cached = aiCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp < CONSTANTS.cacheTimeout)) {
         return cached.data;
     }
     
-    if (!config.ollamaUrl || !isValidUrl(config.ollamaUrl)) {
+    if (!isValidUrl(config.ollamaUrl)) {
         throw new Error('Invalid Ollama URL');
     }
     
@@ -330,13 +291,19 @@ async function generateAISuggestion(text, style, config) {
             clearTimeout(timeoutId);
             
             if (!response.ok) {
-                throw new Error(`Ollama returned ${response.status}`);
+                let errorDetail = '';
+                try {
+                    const errorData = await response.json();
+                    errorDetail = errorData.error || errorData.message || '';
+                } catch (e) {
+                    // Ignore
+                }
+                throw new Error(`Ollama returned ${response.status}${errorDetail ? ': ' + errorDetail : ''}`);
             }
             
             const data = await response.json();
             const result = data.response || '';
             
-            // Cache successful result
             aiCache.set(cacheKey, {
                 data: result,
                 timestamp: Date.now()
@@ -359,9 +326,6 @@ async function generateAISuggestion(text, style, config) {
     throw new Error(`AI suggestion failed: ${lastError.message}`);
 }
 
-/**
- * Test connection to services
- */
 async function handleTestConnection(request, sendResponse) {
     const { service, url } = request;
     
@@ -394,26 +358,23 @@ async function handleTestConnection(request, sendResponse) {
     }
 }
 
-/**
- * Apply theme to all tabs
- */
 async function handleApplyTheme(request, sendResponse) {
     const { theme } = request;
     
     try {
-        // Save theme preference
         await chrome.storage.sync.set({ theme });
         
-        // Notify all content scripts to update theme
         const tabs = await chrome.tabs.query({});
-        tabs.forEach(tab => {
-            chrome.tabs.sendMessage(tab.id, {
-                action: 'updateTheme',
-                theme: theme
-            }).catch(() => {
-                // Ignore errors for tabs where content script isn't loaded
-            });
-        });
+        for (const tab of tabs) {
+            try {
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: 'updateTheme',
+                    theme: theme
+                });
+            } catch (e) {
+                // Ignore tabs without content script
+            }
+        }
         
         sendResponse({ success: true });
     } catch (error) {
@@ -421,54 +382,40 @@ async function handleApplyTheme(request, sendResponse) {
     }
 }
 
-/**
- * Get user settings
- */
 async function handleGetSettings(sendResponse) {
     try {
         const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
         sendResponse({ settings });
     } catch (error) {
-        console.error('Error getting settings:', error);
         sendResponse({ error: error.message });
     }
 }
 
-/**
- * Save user settings
- */
 async function handleSaveSettings(settings, sendResponse) {
     try {
-        // Validate URLs before saving
-        if (settings.languageToolUrl && !isValidUrl(settings.languageToolUrl)) {
+        if (settings.languageToolUrl && settings.languageToolUrl.trim() !== '' && !isValidUrl(settings.languageToolUrl)) {
             sendResponse({ success: false, error: 'Invalid LanguageTool URL' });
             return;
         }
         
-        if (settings.ollamaUrl && !isValidUrl(settings.ollamaUrl)) {
+        if (settings.ollamaUrl && settings.ollamaUrl.trim() !== '' && !isValidUrl(settings.ollamaUrl)) {
             sendResponse({ success: false, error: 'Invalid Ollama URL' });
             return;
         }
         
         await chrome.storage.sync.set(settings);
         
-        // Apply theme if changed
         if (settings.theme) {
-            handleApplyTheme({ theme: settings.theme }, () => {});
+            await handleApplyTheme({ theme: settings.theme }, () => {});
         }
         
         sendResponse({ success: true });
     } catch (error) {
-        console.error('Error saving settings:', error);
         sendResponse({ error: error.message });
     }
 }
 
-/**
- * Context menu setup
- */
 chrome.runtime.onInstalled.addListener(async (details) => {
-    // Create context menus
     chrome.contextMenus.create({
         id: 'aigrammar-check',
         title: 'Check Grammar & Rephrase',
@@ -493,7 +440,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         contexts: ['editable']
     });
     
-    // Show onboarding for first install
     if (details.reason === 'install') {
         chrome.tabs.create({
             url: 'options.html?firstRun=true'
@@ -510,9 +456,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     });
 });
 
-/**
- * Keyboard shortcuts
- */
 chrome.commands.onCommand.addListener((command) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
@@ -523,5 +466,3 @@ chrome.commands.onCommand.addListener((command) => {
         }
     });
 });
-
-console.log('AI Grammar Pro+ Background Service Worker loaded');

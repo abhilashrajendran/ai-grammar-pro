@@ -1,5 +1,5 @@
 /**
- * AI Grammar Pro+ - Options Page Script
+ * AI Grammar Pro+ - Options Page Script v3.1
  */
 
 const STYLE_INFO = {
@@ -16,13 +16,8 @@ const STYLE_INFO = {
 let currentSettings = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Load current settings
     await loadSettings();
-    
-    // Set up event listeners
     setupEventListeners();
-    
-    // Populate style checkboxes
     populateStyleCheckboxes();
 });
 
@@ -35,13 +30,11 @@ async function loadSettings() {
             applySettingsToUI(currentSettings);
         }
     } catch (error) {
-        console.error('Error loading settings:', error);
         showError('Failed to load settings. Please refresh the page.');
     }
 }
 
 function applySettingsToUI(settings) {
-    // Auto check
     const autoCheckToggle = document.getElementById('auto-check-toggle');
     if (settings.autoCheck) {
         autoCheckToggle.classList.add('active');
@@ -49,16 +42,10 @@ function applySettingsToUI(settings) {
         autoCheckToggle.classList.remove('active');
     }
     
-    // Check delay
     document.getElementById('check-delay').value = settings.checkDelay || 1000;
-    
-    // Default style
     document.getElementById('default-style').value = settings.defaultStyle || 'professional';
-    
-    // In loadSettings/applySettingsToUI
     document.getElementById('theme-select').value = settings.theme || 'auto';
 
-    // Show statistics
     const showStatsToggle = document.getElementById('show-stats-toggle');
     if (settings.showStatistics) {
         showStatsToggle.classList.add('active');
@@ -66,7 +53,6 @@ function applySettingsToUI(settings) {
         showStatsToggle.classList.remove('active');
     }
     
-    // Shortcuts
     const shortcutsToggle = document.getElementById('shortcuts-toggle');
     if (settings.enableShortcuts) {
         shortcutsToggle.classList.add('active');
@@ -74,7 +60,6 @@ function applySettingsToUI(settings) {
         shortcutsToggle.classList.remove('active');
     }
     
-    // Enabled styles
     const enabledStyles = settings.enabledStyles || Object.keys(STYLE_INFO);
     Object.keys(STYLE_INFO).forEach(styleKey => {
         const checkbox = document.getElementById(`style-${styleKey}`);
@@ -83,14 +68,9 @@ function applySettingsToUI(settings) {
         }
     });
 
-    document.getElementById('lt-url').value = 
-                settings.languageToolUrl || 'http://192.168.6.2:8010/v2/check';
-            
-    document.getElementById('ollama-url').value = 
-        settings.ollamaUrl || 'http://192.168.6.2:30068/api/generate';
-        
-    document.getElementById('ollama-model').value = 
-        settings.ollamaModel || 'llama3.2:1b';
+    document.getElementById('lt-url').value = settings.languageToolUrl || '';
+    document.getElementById('ollama-url').value = settings.ollamaUrl || '';
+    document.getElementById('ollama-model').value = settings.ollamaModel || 'llama3.2:1b';
 }
 
 function populateStyleCheckboxes() {
@@ -116,7 +96,6 @@ function populateStyleCheckboxes() {
 }
 
 function setupEventListeners() {
-    // Toggle switches
     document.getElementById('auto-check-toggle').addEventListener('click', function() {
         this.classList.toggle('active');
     });
@@ -129,7 +108,6 @@ function setupEventListeners() {
         this.classList.toggle('active');
     });
     
-    // Save button
     document.getElementById('save-button').addEventListener('click', saveSettings);
 }
 
@@ -137,7 +115,6 @@ async function saveSettings() {
     const saveButton = document.getElementById('save-button');
     const successMessage = document.getElementById('success-message');
     
-    // Collect settings
     const settings = {
         autoCheck: document.getElementById('auto-check-toggle').classList.contains('active'),
         checkDelay: parseInt(document.getElementById('check-delay').value),
@@ -151,7 +128,6 @@ async function saveSettings() {
         enabledStyles: []
     };
     
-    // Collect enabled styles
     Object.keys(STYLE_INFO).forEach(styleKey => {
         const checkbox = document.getElementById(`style-${styleKey}`);
         if (checkbox && checkbox.checked) {
@@ -159,18 +135,15 @@ async function saveSettings() {
         }
     });
     
-    // Ensure at least one style is enabled
     if (settings.enabledStyles.length === 0) {
         showError('Please enable at least one rephrase style.');
         return;
     }
     
     try {
-        // Disable button
         saveButton.disabled = true;
         saveButton.textContent = '💾 Saving...';
         
-        // Save to storage
         const response = await chrome.runtime.sendMessage({
             action: 'saveSettings',
             settings: settings
@@ -179,7 +152,11 @@ async function saveSettings() {
         if (response && response.success) {
             currentSettings = settings;
             
-            // Show success message
+            await chrome.runtime.sendMessage({
+                action: 'applyTheme',
+                theme: settings.theme
+            });
+            
             successMessage.style.display = 'block';
             saveButton.textContent = '✓ Saved!';
             
@@ -189,10 +166,9 @@ async function saveSettings() {
                 saveButton.disabled = false;
             }, 2000);
         } else {
-            throw new Error('Save failed');
+            throw new Error(response.error || 'Save failed');
         }
     } catch (error) {
-        console.error('Error saving settings:', error);
         showError('Failed to save settings. Please try again.');
         saveButton.textContent = '💾 Save Settings';
         saveButton.disabled = false;

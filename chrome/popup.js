@@ -1,17 +1,14 @@
 /**
- * AI Grammar Pro+ - Popup Script
+ * AI Grammar Pro+ - Popup Script v3.1
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Settings button
     document.getElementById('settings-btn').addEventListener('click', () => {
         chrome.runtime.openOptionsPage();
     });
     
-    // Help button
     document.getElementById('help-btn').addEventListener('click', () => {
-        const helpText = `
-AI Grammar Pro+ Help
+        const helpText = `AI Grammar Pro+ Help
 
 HOW TO USE:
 1. Click on any textarea on a webpage
@@ -41,19 +38,16 @@ TIPS:
 • The floating button shows error count
 • Settings are saved automatically
 
-For more help, visit the Options page.
-        `;
+For more help, visit the Options page.`;
         
         alert(helpText.trim());
     });
     
-    // Options link
     document.getElementById('options-link').addEventListener('click', (e) => {
         e.preventDefault();
         chrome.runtime.openOptionsPage();
     });
     
-    // Check status
     checkStatus();
 });
 
@@ -61,7 +55,6 @@ async function checkStatus() {
     const statusEl = document.getElementById('status');
     
     try {
-        // Try to get settings to verify extension is working
         const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
         
         if (response && response.settings) {
@@ -74,6 +67,5 @@ async function checkStatus() {
     } catch (error) {
         statusEl.textContent = '✗ Error';
         statusEl.style.color = '#dc3545';
-        console.error('Status check error:', error);
     }
 }

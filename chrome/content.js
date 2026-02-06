@@ -1,7 +1,5 @@
 /**
- * AI Grammar Pro+ - Enhanced Content Script
- * Features: Live style switching, keyboard shortcuts, context menu, 
- * statistics, better UX, caching, and accessibility
+ * AI Grammar Pro+ - Enhanced Content Script v3.1
  */
 
 // ============================================================================
@@ -17,28 +15,47 @@ let currentPopup = null;
 let currentAIResponse = null;
 let currentSelectedStyle = 'professional';
 let userSettings = null;
+let lastCheckedText = '';
+let isCheckingInProgress = false;
 const observedTextareas = new WeakSet();
 const DEBOUNCE_DELAY = 1000;
+const MIN_TEXT_LENGTH = 3;
+
+// ============================================================================
+// THEME MANAGEMENT
+// ============================================================================
+
+function applyTheme(theme) {
+    const root = document.documentElement;
+    root.classList.remove('agp-theme-light', 'agp-theme-dark');
+    
+    if (theme === 'light') {
+        root.classList.add('agp-theme-light');
+        root.style.setProperty('--agp-text-color', '#1a1a1b');
+        root.style.setProperty('--agp-bg-color', '#ffffff');
+    } else if (theme === 'dark') {
+        root.classList.add('agp-theme-dark');
+        root.style.setProperty('--agp-text-color', '#eeeeee');
+        root.style.setProperty('--agp-bg-color', '#1a1a1b');
+    }
+}
 
 // ============================================================================
 // SETTINGS MANAGEMENT
 // ============================================================================
 
-/**
- * Load user settings
- */
 async function loadSettings() {
     try {
         const response = await sendMessage({ action: 'getSettings' });
         if (response && response.settings) {
             userSettings = response.settings;
+            applyTheme(response.settings.theme || 'auto');
             return response.settings;
         }
     } catch (error) {
-        console.error('Error loading settings:', error);
+        // Silent fail
     }
     
-    // Default settings
     return {
         autoCheck: true,
         checkDelay: 1000,
@@ -51,7 +68,6 @@ async function loadSettings() {
     };
 }
 
-// Load settings on initialization
 loadSettings().then(settings => {
     userSettings = settings;
     currentSelectedStyle = settings.defaultStyle;
@@ -61,9 +77,6 @@ loadSettings().then(settings => {
 // MESSAGING HELPER
 // ============================================================================
 
-/**
- * Send message to background script with promise
- */
 function sendMessage(message) {
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage(message, (response) => {
@@ -80,9 +93,6 @@ function sendMessage(message) {
 // TEXTAREA DETECTION & TEXT EXTRACTION
 // ============================================================================
 
-/**
- * Check if element is a textarea we should monitor
- */
 function isTextarea(element) {
     return element && 
            element.tagName === 'TEXTAREA' && 
@@ -92,16 +102,10 @@ function isTextarea(element) {
            element.offsetHeight > 0;
 }
 
-/**
- * Get text from textarea
- */
 function getTextFromTextarea(textarea) {
     return textarea?.value || '';
 }
 
-/**
- * Set text in textarea and trigger change events
- */
 function setTextInTextarea(textarea, text) {
     if (!textarea) return;
     
@@ -112,23 +116,18 @@ function setTextInTextarea(textarea, text) {
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     textarea.dispatchEvent(new Event('change', { bubbles: true }));
     
-    // Restore cursor position if possible
     try {
         textarea.setSelectionRange(start, start);
     } catch (e) {
-        // Ignore errors
+        // Ignore
     }
 }
 
-/**
- * Replace specific text range in textarea
- */
 function replaceTextRange(textarea, offset, length, replacement) {
     const text = getTextFromTextarea(textarea);
     const newText = text.slice(0, offset) + replacement + text.slice(offset + length);
     setTextInTextarea(textarea, newText);
     
-    // Update mirror to reflect changes
     setTimeout(() => {
         if (currentTarget === textarea) {
             checkText(textarea);
@@ -140,11 +139,13 @@ function replaceTextRange(textarea, offset, length, replacement) {
 // FLOATING BUTTON
 // ============================================================================
 
-/**
- * Create and position floating check button
- */
 function createFloatingButton(textarea) {
     if (!textarea || !isTextarea(textarea)) return;
+    
+    if (floatingButton && floatingButton._textarea === textarea) {
+        positionFloatingButton(textarea);
+        return;
+    }
     
     removeFloatingButton();
     
@@ -166,9 +167,6 @@ function createFloatingButton(textarea) {
     floatingButton._textarea = textarea;
 }
 
-/**
- * Position floating button in top-right corner of textarea
- */
 function positionFloatingButton(textarea) {
     if (!floatingButton || !textarea) return;
     
@@ -180,13 +178,9 @@ function positionFloatingButton(textarea) {
     floatingButton.style.left = `${rect.right + scrollX - 48}px`;
 }
 
-/**
- * Update floating button to show error count
- */
 function updateFloatingButton(errorCount) {
     if (!floatingButton) return;
     
-    // Remove existing badge
     const existingBadge = floatingButton.querySelector('.agp-error-badge');
     if (existingBadge) {
         existingBadge.remove();
@@ -204,9 +198,18 @@ function updateFloatingButton(errorCount) {
     }
 }
 
-/**
- * Remove floating button
- */
+function setButtonLoading(isLoading) {
+    if (!floatingButton) return;
+    
+    if (isLoading) {
+        floatingButton.classList.add('loading');
+        floatingButton.disabled = true;
+    } else {
+        floatingButton.classList.remove('loading');
+        floatingButton.disabled = false;
+    }
+}
+
 function removeFloatingButton() {
     if (floatingButton) {
         floatingButton.remove();
@@ -218,9 +221,6 @@ function removeFloatingButton() {
 // MIRROR LAYER FOR HIGHLIGHTING
 // ============================================================================
 
-/**
- * Create invisible mirror div to highlight errors
- */
 function createMirror(textarea) {
     if (!textarea) return;
     if (mirrorDiv) mirrorDiv.remove();
@@ -231,7 +231,6 @@ function createMirror(textarea) {
     const rect = textarea.getBoundingClientRect();
     const style = window.getComputedStyle(textarea);
     
-    // Copy styling from textarea to mirror
     Object.assign(mirrorDiv.style, {
         position: 'absolute',
         top: `${rect.top + window.scrollY}px`,
@@ -263,82 +262,50 @@ function createMirror(textarea) {
     });
     
     document.body.appendChild(mirrorDiv);
-    syncMirrorScroll(textarea);
-    
-    // Sync scroll events
-    const scrollHandler = () => syncMirrorScroll(textarea);
-    textarea.addEventListener('scroll', scrollHandler);
-    textarea._scrollHandler = scrollHandler;
+    mirrorDiv._textarea = textarea;
 }
 
-/**
- * Sync mirror scroll with textarea
- */
-function syncMirrorScroll(textarea) {
-    if (!mirrorDiv || !textarea) return;
-    mirrorDiv.scrollTop = textarea.scrollTop;
-    mirrorDiv.scrollLeft = textarea.scrollLeft;
-}
-
-/**
- * Highlight all errors in mirror (NO BACKGROUND HIGHLIGHT)
- */
-function highlightErrors(text, matches, textarea) {
-    if (!mirrorDiv) return;
+function updateMirror(textarea, matches) {
+    if (!textarea || !isTextarea(textarea)) return;
     
-    mirrorDiv.innerHTML = '';
+    if (!matches || matches.length === 0) {
+        clearMirror();
+        return;
+    }
+    
+    if (!mirrorDiv || mirrorDiv._textarea !== textarea) {
+        createMirror(textarea);
+    }
+    
+    const text = getTextFromTextarea(textarea);
+    let html = '';
     let lastIndex = 0;
     
-    matches.forEach((match, index) => {
-        const { offset, length } = match;
+    matches.forEach(match => {
+        html += escapeHtml(text.slice(lastIndex, match.offset));
         
-        // Add text before error
-        if (offset > lastIndex) {
-            const span = document.createElement('span');
-            span.textContent = text.substring(lastIndex, offset);
-            mirrorDiv.appendChild(span);
-        }
+        const errorText = text.slice(match.offset, match.offset + match.length);
+        html += `<span class="agp-error-highlight" data-match-offset="${match.offset}" data-match-length="${match.length}">${escapeHtml(errorText)}</span>`;
         
-        // Add error with ONLY underline (no background)
-        const errorSpan = document.createElement('span');
-        errorSpan.className = 'agp-error-highlight';
-        errorSpan.textContent = text.substring(offset, offset + length);
-        errorSpan.setAttribute('data-error-index', index);
-        
-        // Store match data
-        errorSpan._matchData = match;
-        errorSpan._textarea = textarea;
-        
-        errorSpan.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (e.target._matchData && e.target._textarea) {
-                showSuggestions(e.target._matchData, e.target._textarea);
-            }
-        });
-        
-        mirrorDiv.appendChild(errorSpan);
-        lastIndex = offset + length;
+        lastIndex = match.offset + match.length;
     });
     
-    // Add remaining text
-    if (lastIndex < text.length) {
-        const span = document.createElement('span');
-        span.textContent = text.substring(lastIndex);
-        mirrorDiv.appendChild(span);
-    }
+    html += escapeHtml(text.slice(lastIndex));
+    
+    mirrorDiv.innerHTML = html;
+    
+    mirrorDiv.querySelectorAll('.agp-error-highlight').forEach(span => {
+        span.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const offset = parseInt(span.dataset.matchOffset);
+            const matchData = matches.find(m => m.offset === offset);
+            if (matchData) {
+                showGrammarSuggestion(matchData, textarea);
+            }
+        });
+    });
 }
 
-// Helper to get the correct class
-function getThemeClass() {
-    if (userSettings.theme === 'dark') return 'agp-theme-dark';
-    if (userSettings.theme === 'light') return 'agp-theme-light';
-    return ''; // 'auto' relies on CSS media query
-}
-
-/**
- * Clear mirror
- */
 function clearMirror() {
     if (mirrorDiv) {
         mirrorDiv.remove();
@@ -350,401 +317,336 @@ function clearMirror() {
 // TEXT CHECKING
 // ============================================================================
 
-/**
- * Check text for grammar errors
- */
 async function checkText(textarea) {
     if (!textarea || !isTextarea(textarea)) return;
-    if (!userSettings?.autoCheck) return;
+    if (isCheckingInProgress) return;
     
     const text = getTextFromTextarea(textarea);
     
-    if (!text || text.trim().length < 3) {
+    if (text === lastCheckedText) return;
+    
+    if (text.trim().length < MIN_TEXT_LENGTH) {
         clearMirror();
-        currentMatches = [];
         updateFloatingButton(0);
         return;
     }
     
+    isCheckingInProgress = true;
+    lastCheckedText = text;
+    setButtonLoading(true);
+    
     try {
         const response = await sendMessage({
             action: 'checkText',
             text: text,
-            grammarOnly: true
+            grammarOnly: false
         });
         
-        if (response && response.grammar) {
-            currentMatches = response.grammar;
-            updateFloatingButton(response.grammar.length);
+        if (response) {
+            if (response.error) {
+                showToast(response.error, 'error');
+            }
             
-            // Create mirror and highlight errors
-            createMirror(textarea);
-            highlightErrors(text, response.grammar, textarea);
+            currentMatches = response.grammar || [];
+            updateMirror(textarea, currentMatches);
+            updateFloatingButton(currentMatches.length);
         }
     } catch (error) {
-        console.error('Error checking text:', error);
+        showToast('Check failed. Please try again.', 'error');
+    } finally {
+        isCheckingInProgress = false;
+        setButtonLoading(false);
+    }
+}
+
+async function performCheck(textarea) {
+    if (!textarea || !isTextarea(textarea)) return;
+    
+    const text = getTextFromTextarea(textarea);
+    if (!text || text.trim().length === 0) {
+        showToast('Please enter some text first', 'info');
+        return;
+    }
+    
+    closeAllPopups();
+    setButtonLoading(true);
+    
+    try {
+        const response = await sendMessage({
+            action: 'checkText',
+            text: text,
+            style: currentSelectedStyle
+        });
+        
+        if (response) {
+            currentMatches = response.grammar || [];
+            currentAIResponse = response.ai || '';
+            
+            updateMirror(textarea, currentMatches);
+            updateFloatingButton(currentMatches.length);
+            
+            createAIPopup(textarea);
+        }
+    } catch (error) {
+        showToast('Check failed. Please try again.', 'error');
+    } finally {
+        setButtonLoading(false);
     }
 }
 
 // ============================================================================
-// SUGGESTIONS POPUP
+// GRAMMAR SUGGESTION POPUP
 // ============================================================================
 
-/**
- * Show grammar correction suggestions
- */
-function showSuggestions(match, textarea) {
+function showGrammarSuggestion(match, textarea) {
     closeAllPopups();
     
     const popup = document.createElement('div');
     popup.id = 'agp-grammar-popup';
-    popup.className = `agp-popup ${getThemeClass()}`;
+    popup.className = 'agp-popup';
     
-    const rect = textarea.getBoundingClientRect();
-    popup.style.cssText = `
-        position: fixed;
-        top: ${Math.min(rect.bottom + window.scrollY + 10, window.innerHeight - 300)}px;
-        left: ${Math.max(rect.left + window.scrollX, 20)}px;
-    `;
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'agp-popup-header';
     
-    const message = match.message || 'Grammar issue detected';
-    const replacements = match.replacements || [];
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'agp-popup-title';
+    titleDiv.innerHTML = `<span class="agp-popup-title-icon">✏️</span>${match.message || 'Grammar suggestion'}`;
     
-    popup.innerHTML = `
-        <div class="agp-popup-header">
-            <h3 class="agp-popup-title">
-                <span class="agp-popup-title-icon">📝</span>
-                Grammar Suggestion
-            </h3>
-            <button type="button" class="agp-close-btn" aria-label="Close">×</button>
-        </div>
-        <div class="agp-popup-body">
-            <div class="agp-suggestion-message">${escapeHtml(message)}</div>
-            <div class="agp-suggestions-list" id="suggestions-list"></div>
-        </div>
-    `;
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'agp-close-btn';
+    closeBtn.innerHTML = '×';
+    closeBtn.onclick = () => popup.remove();
     
-    document.body.appendChild(popup);
-
-    const header = popup.querySelector('.agp-popup-header');
-    makeDraggable(popup, header);
-
-    currentPopup = popup;
+    headerDiv.appendChild(titleDiv);
+    headerDiv.appendChild(closeBtn);
     
-    // Close button
-    popup.querySelector('.agp-close-btn').addEventListener('click', () => popup.remove());
+    const bodyDiv = document.createElement('div');
+    bodyDiv.className = 'agp-popup-body';
     
-    // Add suggestions
-    const suggestionsList = popup.querySelector('#suggestions-list');
-    
-    if (replacements.length === 0) {
-        suggestionsList.innerHTML = '<p style="color: var(--agp-text-secondary); font-size: 12px;">No suggestions available</p>';
-    } else {
-        replacements.slice(0, 5).forEach(replacement => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'agp-suggestion-btn';
-            btn.textContent = replacement.value;
-            
-            btn.addEventListener('click', () => {
+    if (match.replacements && match.replacements.length > 0) {
+        match.replacements.slice(0, 5).forEach(replacement => {
+            const suggestionBtn = document.createElement('button');
+            suggestionBtn.className = 'agp-suggestion-btn';
+            suggestionBtn.textContent = replacement.value;
+            suggestionBtn.onclick = () => {
                 replaceTextRange(textarea, match.offset, match.length, replacement.value);
                 popup.remove();
-                showToast('✓ Applied suggestion', 'success');
-            });
-            
-            suggestionsList.appendChild(btn);
+                showToast('Text replaced', 'success');
+            };
+            bodyDiv.appendChild(suggestionBtn);
         });
+    } else {
+        bodyDiv.innerHTML = '<div class="agp-suggestion-message">No suggestions available</div>';
     }
     
-    // Add ignore option
-    const ignoreBtn = document.createElement('button');
-    ignoreBtn.type = 'button';
-    ignoreBtn.className = 'agp-suggestion-btn';
-    ignoreBtn.textContent = 'Ignore this suggestion';
-    ignoreBtn.style.opacity = '0.7';
-    ignoreBtn.addEventListener('click', () => {
-        popup.remove();
-        showToast('Suggestion ignored', 'info');
-    });
-    suggestionsList.appendChild(ignoreBtn);
+    popup.appendChild(headerDiv);
+    popup.appendChild(bodyDiv);
+    
+    document.body.appendChild(popup);
+    currentPopup = popup;
+    
+    const rect = textarea.getBoundingClientRect();
+    popup.style.position = 'fixed';
+    popup.style.top = `${rect.top + window.scrollY - 10}px`;
+    popup.style.left = `${rect.left + window.scrollX + 20}px`;
+    
+    makeDraggable(popup, headerDiv);
 }
 
 // ============================================================================
-// AI REPHRASE POPUP - WITH LIVE STYLE SWITCHING
+// AI POPUP
 // ============================================================================
 
-/**
- * Show AI rephrase popup with live style switching
- */
-async function showAIPopup(textarea, initialText = null) {
+function createAIPopup(textarea) {
     closeAllPopups();
-    
-    const text = getTextFromTextarea(textarea);
-    if (!text || text.trim().length < 3) {
-        showToast('Please enter some text', 'error');
-        return;
-    }
     
     const popup = document.createElement('div');
     popup.id = 'agp-ai-popup';
-    popup.className = `agp-popup ${getThemeClass()}`;
+    popup.className = 'agp-popup';
     
-    const rect = textarea.getBoundingClientRect();
-    popup.style.cssText = `
-        position: fixed;
-        top: ${Math.min(rect.bottom + window.scrollY + 10, window.innerHeight - 400)}px;
-        left: ${Math.max(rect.left + window.scrollX, 20)}px;
-        max-width: 500px;
-    `;
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'agp-popup-header';
     
-    // Get available styles from background
-    const stylesResponse = await sendMessage({ action: 'getStylePrompts' });
-    const allStyles = stylesResponse?.styles || {};
-    const enabledStyles = userSettings?.enabledStyles || Object.keys(allStyles);
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'agp-popup-title';
+    titleDiv.innerHTML = '<span class="agp-popup-title-icon">✨</span>AI Grammar & Rephrase';
     
-    popup.innerHTML = `
-        <div class="agp-popup-header">
-            <h3 class="agp-popup-title">
-                <span class="agp-popup-title-icon">✨</span>
-                AI Rephrase
-            </h3>
-            <button type="button" class="agp-close-btn" aria-label="Close">×</button>
-        </div>
-        <div class="agp-popup-body">
-            <div class="agp-style-selector">
-                <div class="agp-section-label">
-                    <span>🎨</span> Choose Style
-                </div>
-                <div class="agp-style-grid" id="style-grid"></div>
-            </div>
-            <div id="ai-response-area"></div>
-        </div>
-    `;
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'agp-close-btn';
+    closeBtn.innerHTML = '×';
+    closeBtn.onclick = () => popup.remove();
+    
+    headerDiv.appendChild(titleDiv);
+    headerDiv.appendChild(closeBtn);
+    
+    const bodyDiv = document.createElement('div');
+    bodyDiv.className = 'agp-popup-body';
+    
+    if (currentMatches.length > 0) {
+        const statsDiv = document.createElement('div');
+        statsDiv.className = 'agp-suggestion-message';
+        statsDiv.textContent = `Found ${currentMatches.length} grammar issue${currentMatches.length !== 1 ? 's' : ''}. Click on underlined text for suggestions.`;
+        bodyDiv.appendChild(statsDiv);
+    } else {
+        const statsDiv = document.createElement('div');
+        statsDiv.className = 'agp-empty-state';
+        statsDiv.innerHTML = '<div class="agp-empty-icon">✓</div><h3>No Issues Found</h3><p>Your text looks great!</p>';
+        bodyDiv.appendChild(statsDiv);
+    }
+    
+    loadAndDisplayStyleButtons(bodyDiv, textarea);
+    
+    popup.appendChild(headerDiv);
+    popup.appendChild(bodyDiv);
+    
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'agp-popup-actions';
+    
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'agp-btn';
+    copyBtn.innerHTML = '<span class="agp-btn-icon">📋</span>Copy';
+    copyBtn.onclick = async () => {
+        if (currentAIResponse) {
+            await copyToClipboard(currentAIResponse);
+            showToast('Copied to clipboard', 'success');
+        }
+    };
+    
+    const applyBtn = document.createElement('button');
+    applyBtn.className = 'agp-btn agp-btn-primary';
+    applyBtn.innerHTML = '<span class="agp-btn-icon">✓</span>Apply';
+    applyBtn.onclick = () => {
+        if (currentAIResponse) {
+            setTextInTextarea(textarea, currentAIResponse);
+            popup.remove();
+            showToast('Text applied', 'success');
+        }
+    };
+    
+    actionsDiv.appendChild(copyBtn);
+    actionsDiv.appendChild(applyBtn);
+    popup.appendChild(actionsDiv);
     
     document.body.appendChild(popup);
-
-    const header = popup.querySelector('.agp-popup-header');
-    makeDraggable(popup, header);
-    
     currentPopup = popup;
     
-    // Close button
-    popup.querySelector('.agp-close-btn').addEventListener('click', () => popup.remove());
+    const rect = textarea.getBoundingClientRect();
+    popup.style.position = 'fixed';
+    popup.style.top = '50%';
+    popup.style.left = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
     
-    // Add style buttons
-    const styleGrid = popup.querySelector('#style-grid');
-    const responseArea = popup.querySelector('#ai-response-area');
+    makeDraggable(popup, headerDiv);
+}
+
+async function loadAndDisplayStyleButtons(container, textarea) {
+    const stylesDiv = document.createElement('div');
+    stylesDiv.className = 'agp-style-section';
     
-    enabledStyles.forEach(styleKey => {
-        if (allStyles[styleKey]) {
+    const styleLabel = document.createElement('div');
+    styleLabel.className = 'agp-style-label';
+    styleLabel.textContent = 'Rephrase Style:';
+    stylesDiv.appendChild(styleLabel);
+    
+    const styleGrid = document.createElement('div');
+    styleGrid.className = 'agp-style-grid';
+    
+    try {
+        const response = await sendMessage({ action: 'getStylePrompts' });
+        const styles = response.styles || {};
+        
+        Object.keys(styles).forEach(styleKey => {
+            const styleInfo = styles[styleKey];
             const btn = document.createElement('button');
-            btn.type = 'button';
             btn.className = 'agp-style-btn';
-            btn.setAttribute('data-style', styleKey);
-            
             if (styleKey === currentSelectedStyle) {
                 btn.classList.add('active');
             }
-            
-            btn.innerHTML = `
-                <span class="agp-style-icon">${allStyles[styleKey].icon}</span>
-                <span>${capitalize(styleKey)}</span>
-            `;
-            
-            btn.addEventListener('click', () => {
-                // Update active state
-                styleGrid.querySelectorAll('.agp-style-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentSelectedStyle = styleKey;
-                
-                // Generate new suggestion
-                generateAndShowAISuggestion(textarea, text, styleKey, responseArea);
-            });
-            
+            btn.innerHTML = `<span class="agp-style-icon">${styleInfo.icon}</span>${styleInfo.label}`;
+            btn.onclick = () => switchStyle(styleKey, styleGrid, textarea);
             styleGrid.appendChild(btn);
-        }
-    });
-    
-    // Show initial state or generate first suggestion
-    if (initialText) {
-        showAIResult(responseArea, initialText, textarea);
-    } else {
-        generateAndShowAISuggestion(textarea, text, currentSelectedStyle, responseArea);
+        });
+    } catch (error) {
+        // Silent fail
     }
+    
+    stylesDiv.appendChild(styleGrid);
+    container.appendChild(stylesDiv);
+    
+    const responseContainer = document.createElement('div');
+    responseContainer.className = 'agp-ai-response-container';
+    responseContainer.id = 'agp-ai-response-container';
+    
+    if (currentAIResponse) {
+        const responseDiv = document.createElement('div');
+        responseDiv.className = 'agp-ai-response';
+        responseDiv.textContent = currentAIResponse;
+        responseContainer.appendChild(responseDiv);
+    } else {
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'agp-status-message';
+        statusDiv.innerHTML = '<span class="agp-status-icon">💭</span>Select a style to rephrase your text';
+        responseContainer.appendChild(statusDiv);
+    }
+    
+    container.appendChild(responseContainer);
 }
 
-/**
- * Generate and display AI suggestion
- */
-async function generateAndShowAISuggestion(textarea, text, style, responseArea) {
-    responseArea.innerHTML = `
-        <div class="agp-status-message">
-            <div class="agp-status-icon">⏳</div>
-            <div>Generating ${style} version...</div>
-        </div>
-    `;
+async function switchStyle(styleKey, styleGrid, textarea) {
+    currentSelectedStyle = styleKey;
+    
+    styleGrid.querySelectorAll('.agp-style-btn').forEach(btn => btn.classList.remove('active'));
+    styleGrid.querySelector(`button:nth-child(${Array.from(styleGrid.children).findIndex(el => el.textContent.includes(styleKey.charAt(0).toUpperCase() + styleKey.slice(1))) + 1})`).classList.add('active');
+    
+    const container = document.getElementById('agp-ai-response-container');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">⏳</span>Rephrasing...</div>';
+    
+    const text = getTextFromTextarea(textarea);
     
     try {
         const response = await sendMessage({
             action: 'checkText',
             text: text,
-            style: style,
+            style: styleKey,
             grammarOnly: false
         });
         
         if (response && response.ai) {
             currentAIResponse = response.ai;
-            showAIResult(responseArea, response.ai, textarea);
+            container.innerHTML = '';
+            const responseDiv = document.createElement('div');
+            responseDiv.className = 'agp-ai-response';
+            responseDiv.textContent = response.ai;
+            container.appendChild(responseDiv);
         } else {
-            responseArea.innerHTML = `
-                <div class="agp-status-message">
-                    <div class="agp-status-icon">❌</div>
-                    <div>No suggestion available. Ensure Ollama is running.</div>
-                </div>
-            `;
+            container.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">❌</span>Failed to rephrase</div>';
         }
     } catch (error) {
-        console.error('AI generation error:', error);
-        responseArea.innerHTML = `
-            <div class="agp-status-message">
-                <div class="agp-status-icon">⚠️</div>
-                <div>Error: ${error.message}</div>
-            </div>
-        `;
-    }
-}
-
-/**
- * Show AI result with actions
- */
-function showAIResult(responseArea, aiText, textarea) {
-    responseArea.innerHTML = `
-        <div class="agp-ai-response-container">
-            <div class="agp-ai-response">${escapeHtml(aiText)}</div>
-        </div>
-        <div class="agp-popup-actions">
-            <button type="button" class="agp-btn" id="copy-btn">
-                <span class="agp-btn-icon">📋</span> Copy
-            </button>
-            <button type="button" class="agp-btn agp-btn-success" id="apply-btn">
-                <span class="agp-btn-icon">✓</span> Apply
-            </button>
-        </div>
-    `;
-    
-    // Copy button
-    responseArea.querySelector('#copy-btn').addEventListener('click', () => {
-        copyToClipboard(aiText);
-        showToast('✓ Copied to clipboard', 'success');
-    });
-    
-    // Apply button
-    responseArea.querySelector('#apply-btn').addEventListener('click', () => {
-        setTextInTextarea(textarea, aiText);
-        currentPopup?.remove();
-        showToast('✓ Text applied', 'success');
-    });
-}
-
-/**
- * Perform full check with AI suggestions
- */
-async function performCheck(textarea) {
-    if (!textarea || !isTextarea(textarea)) return;
-    
-    const text = getTextFromTextarea(textarea);
-    
-    if (!text || text.trim().length < 3) {
-        showToast('Please enter some text', 'error');
-        return;
-    }
-    
-    floatingButton?.classList.add('loading');
-    
-    try {
-        // Show AI popup
-        await showAIPopup(textarea);
-    } finally {
-        floatingButton?.classList.remove('loading');
+        container.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">❌</span>Error occurred</div>';
     }
 }
 
 // ============================================================================
-// TOAST NOTIFICATIONS
+// UTILITIES
 // ============================================================================
 
-let toastTimeout = null;
-
-/**
- * Show toast notification
- */
-function showToast(message, type = 'info') {
-    // Remove existing toast
-    const existingToast = document.querySelector('.agp-toast');
-    if (existingToast) {
-        existingToast.remove();
-    }
-    
-    clearTimeout(toastTimeout);
-    
-    const toast = document.createElement('div');
-    toast.className = `agp-toast ${type}`;
-    
-    const icons = {
-        success: '✓',
-        error: '✗',
-        info: 'ℹ',
-        warning: '⚠'
-    };
-    
-    toast.innerHTML = `
-        <span class="agp-toast-icon">${icons[type] || icons.info}</span>
-        <span>${escapeHtml(message)}</span>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Trigger animation
-    requestAnimationFrame(() => {
-        toast.classList.add('show');
-    });
-    
-    // Auto-hide after 3 seconds
-    toastTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Escape HTML to prevent XSS
- */
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-/**
- * Capitalize first letter
- */
 function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-/**
- * Copy text to clipboard
- */
 async function copyToClipboard(text) {
     try {
         await navigator.clipboard.writeText(text);
         return true;
     } catch (error) {
-        // Fallback method
         const textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
@@ -757,92 +659,32 @@ async function copyToClipboard(text) {
     }
 }
 
-/**
- * Close all open popups
- */
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `agp-toast ${type}`;
+    
+    const icon = type === 'success' ? '✓' : 
+                 type === 'error' ? '✕' : 
+                 type === 'warning' ? '⚠' : 'ℹ';
+    
+    toast.innerHTML = `<span class="agp-toast-icon">${icon}</span><span>${escapeHtml(message)}</span>`;
+    
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
 function closeAllPopups() {
     if (currentPopup) {
         currentPopup.remove();
         currentPopup = null;
     }
-    
     document.querySelectorAll('#agp-grammar-popup, #agp-ai-popup').forEach(p => p.remove());
 }
 
-// ============================================================================
-// EVENT LISTENERS
-// ============================================================================
-
-/**
- * Listen for input changes
- */
-document.addEventListener('input', (e) => {
-    if (!isTextarea(e.target)) return;
-    
-    currentTarget = e.target;
-    
-    // Debounce check
-    clearTimeout(checkTimer);
-    const delay = userSettings?.checkDelay || DEBOUNCE_DELAY;
-    checkTimer = setTimeout(() => checkText(e.target), delay);
-});
-
-/**
- * Show floating button on focus
- */
-document.addEventListener('focusin', (e) => {
-    if (!isTextarea(e.target)) return;
-    
-    currentTarget = e.target;
-    createFloatingButton(e.target);
-    observedTextareas.add(e.target);
-    
-    // Check text if auto-check is enabled
-    if (userSettings?.autoCheck && getTextFromTextarea(e.target).trim().length > 0) {
-        checkText(e.target);
-    }
-});
-
-/**
- * Hide floating button on blur
- */
-document.addEventListener('focusout', (e) => {
-    if (!isTextarea(e.target)) return;
-    
-    setTimeout(() => {
-        const popup = document.querySelector('.agp-popup');
-        
-        // Only remove if user isn't interacting with popup
-        if (!popup && document.activeElement !== e.target) {
-            removeFloatingButton();
-            clearMirror();
-            currentTarget = null;
-        }
-    }, 200);
-});
-
-/**
- * Reposition elements on scroll/resize
- */
-function handleWindowResize() {
-    if (!currentTarget || !isTextarea(currentTarget)) return;
-    
-    if (floatingButton) positionFloatingButton(currentTarget);
-    
-    if (mirrorDiv) {
-        const rect = currentTarget.getBoundingClientRect();
-        const scrollY = window.scrollY || document.documentElement.scrollTop;
-        const scrollX = window.scrollX || document.documentElement.scrollLeft;
-        
-        mirrorDiv.style.top = `${rect.top + scrollY}px`;
-        mirrorDiv.style.left = `${rect.left + scrollX}px`;
-    }
-}
-
-
-/**
- * Make an element draggable via a handle
- */
 function makeDraggable(element, handle) {
     let isDragging = false;
     let startX, startY, initialLeft, initialTop;
@@ -850,33 +692,24 @@ function makeDraggable(element, handle) {
     handle.style.cursor = 'move';
 
     handle.addEventListener('mousedown', (e) => {
-        // Prevent default to avoid text selection during drag
-        e.preventDefault(); 
-        
+        e.preventDefault();
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
         
-        // Get current position
         const rect = element.getBoundingClientRect();
         initialLeft = rect.left;
         initialTop = rect.top;
         
-        // Temporarily remove transform centering if any, or rely on absolute positioning
         element.style.transform = 'none';
         element.style.margin = '0';
-        
-        // Add dragging class for styling
         element.classList.add('agp-dragging');
     });
 
-    // Listen on window to handle fast movements or mouse leaving the element
     window.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-
         element.style.left = `${initialLeft + dx}px`;
         element.style.top = `${initialTop + dy}px`;
     });
@@ -889,27 +722,69 @@ function makeDraggable(element, handle) {
     });
 }
 
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
+
+document.addEventListener('input', (e) => {
+    if (!isTextarea(e.target)) return;
+    currentTarget = e.target;
+    clearTimeout(checkTimer);
+    const delay = userSettings?.checkDelay || DEBOUNCE_DELAY;
+    checkTimer = setTimeout(() => checkText(e.target), delay);
+});
+
+document.addEventListener('focusin', (e) => {
+    if (!isTextarea(e.target)) return;
+    currentTarget = e.target;
+    createFloatingButton(e.target);
+    observedTextareas.add(e.target);
+    
+    if (userSettings?.autoCheck && getTextFromTextarea(e.target).trim().length > 0) {
+        checkText(e.target);
+    }
+});
+
+document.addEventListener('focusout', (e) => {
+    if (!isTextarea(e.target)) return;
+    
+    setTimeout(() => {
+        const popup = document.querySelector('.agp-popup');
+        if (!popup && document.activeElement !== e.target) {
+            removeFloatingButton();
+            clearMirror();
+            currentTarget = null;
+        }
+    }, 200);
+});
+
+function handleWindowResize() {
+    if (!currentTarget || !isTextarea(currentTarget)) return;
+    
+    if (floatingButton) positionFloatingButton(currentTarget);
+    
+    if (mirrorDiv) {
+        const rect = currentTarget.getBoundingClientRect();
+        const scrollY = window.scrollY || document.documentElement.scrollTop;
+        const scrollX = window.scrollX || document.documentElement.scrollLeft;
+        mirrorDiv.style.top = `${rect.top + scrollY}px`;
+        mirrorDiv.style.left = `${rect.left + scrollX}px`;
+    }
+}
+
 window.addEventListener('scroll', handleWindowResize, true);
 window.addEventListener('resize', handleWindowResize);
 
-/**
- * Close popups when clicking outside
- */
 document.addEventListener('click', (e) => {
     const popup = document.querySelector('.agp-popup');
-    
     if (popup && !popup.contains(e.target) && !floatingButton?.contains(e.target)) {
         closeAllPopups();
     }
 });
 
-/**
- * Keyboard shortcuts
- */
 document.addEventListener('keydown', (e) => {
     if (!userSettings?.enableShortcuts) return;
     
-    // Ctrl+Shift+G / Cmd+Shift+G - Check grammar
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'G') {
         e.preventDefault();
         if (currentTarget && isTextarea(currentTarget)) {
@@ -917,7 +792,6 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    // Ctrl+Shift+R / Cmd+Shift+R - Quick rephrase
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
         e.preventDefault();
         if (currentTarget && isTextarea(currentTarget)) {
@@ -925,14 +799,13 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    // Escape - Close popups
     if (e.key === 'Escape') {
         closeAllPopups();
     }
 });
 
 // ============================================================================
-// MESSAGE LISTENER (for context menu & shortcuts)
+// MESSAGE LISTENER
 // ============================================================================
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -947,6 +820,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 performCheck(currentTarget);
             }
         }
+    } else if (request.action === 'updateTheme') {
+        applyTheme(request.theme);
     }
 });
 
@@ -954,19 +829,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // DYNAMIC ELEMENT DETECTION
 // ============================================================================
 
-/**
- * Detect new textareas added to DOM
- */
 const mutationObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
             if (node.nodeType === 1) {
-                // Check if node itself is textarea
                 if (isTextarea(node) && !observedTextareas.has(node)) {
                     observedTextareas.add(node);
                 }
-                
-                // Check if node contains textareas
                 if (node.querySelectorAll) {
                     const textareas = node.querySelectorAll('textarea');
                     textareas.forEach(ta => {
@@ -985,9 +854,6 @@ mutationObserver.observe(document.body, {
     subtree: true
 });
 
-/**
- * Initial scan on page load
- */
 window.addEventListener('load', () => {
     document.querySelectorAll('textarea').forEach(textarea => {
         if (isTextarea(textarea) && !observedTextareas.has(textarea)) {
@@ -995,5 +861,3 @@ window.addEventListener('load', () => {
         }
     });
 });
-
-console.log('AI Grammar Pro+ loaded successfully! 🚀');
