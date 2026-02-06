@@ -3,15 +3,15 @@
  */
 
 const CONSTANTS = {
-    timeout: 15000,
+    timeout: 30000,
     maxRetries: 2,
     cacheTimeout: 300000,
     maxCacheSize: 100
 };
 
 const DEFAULT_SETTINGS = {
-    languageToolUrl: '',
-    ollamaUrl: '',
+    languageToolUrl: 'http://192.168.6.2:8010/v2/check',
+    ollamaUrl: 'http://192.168.6.2:30068/api/generate',
     ollamaModel: 'llama3.2:1b',
     autoCheck: true,
     checkDelay: 1000,
@@ -26,42 +26,42 @@ const DEFAULT_SETTINGS = {
 
 const STYLE_PROMPTS = {
     professional: {
-        prompt: 'Rewrite the following text for a corporate audience. Use an active voice, avoid slang, and maintain a respectful, authoritative tone. Ensure the core message remains unchanged while improving clarity and flow.',
+        prompt: 'Rewrite the following text for a corporate audience. Use an active voice, avoid slang, and maintain a respectful, authoritative tone. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '💼',
         label: 'Professional'
     },
     casual: {
-        prompt: 'Rewrite this to sound like a friendly, natural conversation. Use contractions (e.g., "don\'t" instead of "do not") and a warm tone. Keep the message helpful and approachable, as if speaking to a peer.',
+        prompt: 'Rewrite this to sound like a friendly, natural conversation. Use contractions and a warm tone. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '😊',
         label: 'Casual'
     },
     short: {
-        prompt: 'Condense this text into its most essential points. Eliminate all filler words and redundancies. Aim for a "TL;DR" style while preserving every critical piece of information.',
+        prompt: 'Condense the following text to be as concise as possible without losing the core meaning. Remove unnecessary words. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '✂️',
         label: 'Concise'
     },
     academic: {
-        prompt: 'Rephrase this text using formal scholarly conventions. Utilize precise terminology, maintain an objective third-person perspective, and ensure logical transitions between ideas. Avoid anecdotal language.',
+        prompt: 'Rewrite the text for an academic context. Use formal vocabulary, complex sentence structures, and an objective tone. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '🎓',
         label: 'Academic'
     },
     creative: {
-        prompt: 'Infuse this text with vivid imagery and compelling word choices. Use rhetorical devices or metaphors where appropriate to make the prose more evocative, while strictly adhering to the original facts.',
+        prompt: 'Rewrite the text creatively. Use evocative language, metaphors, and a more engaging flow. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '✨',
         label: 'Creative'
     },
     technical: {
-        prompt: 'Rewrite this for a technical audience. Focus on precision, specifications, and logical sequence. Use industry-standard terminology and ensure the tone is purely objective and data-driven.',
+        prompt: 'Rewrite the text for a technical audience. Be precise, use industry-standard terminology, and focus on accuracy. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '⚙️',
         label: 'Technical'
     },
     simple: {
-        prompt: 'Rewrite this for a general audience using a 6th-grade reading level. Break down complex concepts, use short sentences, and replace jargon with common words. The goal is maximum accessibility.',
+        prompt: 'Rewrite the text using simple, easy-to-understand language suitable for a general audience or non-native speakers. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '📝',
         label: 'Simple'
     },
     expand: {
-        prompt: 'Elaborate on the provided text by adding context, descriptive details, or illustrative examples. Flesh out the reasoning behind the main points without changing the original intent or meaning.',
+        prompt: 'Expand upon the following text. Add relevant details, clarify the meaning, and make the text more comprehensive. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '📈',
         label: 'Expand'
     }

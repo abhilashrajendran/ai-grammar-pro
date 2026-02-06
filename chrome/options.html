@@ -13,45 +13,77 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f2f5;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             color: #212529;
             padding: 40px 20px;
+            min-height: 100vh;
         }
         
         .container {
-            max-width: 800px;
+            max-width: 860px;
             margin: 0 auto;
         }
         
         .header {
             text-align: center;
             margin-bottom: 40px;
+            animation: fadeInDown 0.5s ease;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .header h1 {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 700;
             background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
+            background-clip: text;
+            margin-bottom: 10px;
         }
         
         .header p {
             color: #6c757d;
-            font-size: 14px;
+            font-size: 15px;
         }
         
         .settings-card {
             background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .settings-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
         }
         
         .settings-section {
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }
         
         .settings-section:last-child {
@@ -59,25 +91,27 @@
         }
         
         .section-title {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 600;
             color: #212529;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e9ecef;
         }
         
         .section-icon {
-            font-size: 20px;
+            font-size: 22px;
         }
         
         .setting-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f0;
         }
         
         .setting-item:last-child {
@@ -89,27 +123,29 @@
         }
         
         .setting-label h4 {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 4px;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
             color: #212529;
         }
         
         .setting-label p {
-            font-size: 12px;
+            font-size: 13px;
             color: #6c757d;
+            line-height: 1.5;
         }
         
         .setting-control {
             flex-shrink: 0;
+            margin-left: 20px;
         }
         
         .toggle-switch {
             position: relative;
-            width: 48px;
-            height: 24px;
+            width: 52px;
+            height: 28px;
             background: #dee2e6;
-            border-radius: 12px;
+            border-radius: 14px;
             cursor: pointer;
             transition: background 0.3s;
         }
@@ -121,14 +157,14 @@
         .toggle-switch::after {
             content: '';
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             background: white;
             border-radius: 50%;
-            top: 2px;
-            left: 2px;
+            top: 3px;
+            left: 3px;
             transition: transform 0.3s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
         
         .toggle-switch.active::after {
@@ -136,119 +172,217 @@
         }
         
         .input-number {
-            width: 80px;
-            padding: 6px 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
+            width: 90px;
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
             font-size: 14px;
             text-align: center;
+            transition: border-color 0.2s;
+            font-weight: 500;
+        }
+        
+        .input-number:focus {
+            outline: none;
+            border-color: #4A90E2;
         }
         
         .select-box {
-            padding: 6px 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
             font-size: 14px;
-            min-width: 150px;
+            min-width: 160px;
+            transition: border-color 0.2s;
+            font-weight: 500;
+            background: white;
+        }
+        
+        .select-box:focus {
+            outline: none;
+            border-color: #4A90E2;
+        }
+        
+        .input-text {
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            font-weight: 500;
+        }
+        
+        .input-text:focus {
+            outline: none;
+            border-color: #4A90E2;
         }
         
         .style-checkboxes {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 12px;
+            gap: 14px;
+            margin-top: 16px;
         }
         
         .checkbox-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: background 0.2s, transform 0.2s;
+        }
+        
+        .checkbox-item:hover {
+            background: #e9ecef;
+            transform: translateX(4px);
         }
         
         .checkbox-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
+            accent-color: #4A90E2;
         }
         
         .checkbox-item label {
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
+            font-weight: 500;
         }
         
         .save-button {
             width: 100%;
-            padding: 14px;
+            padding: 16px;
             background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
         }
         
         .save-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 6px 16px rgba(74, 144, 226, 0.4);
         }
         
         .save-button:active {
             transform: translateY(0);
         }
         
+        .save-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
         .success-message {
             background: #d4edda;
-            border: 1px solid #c3e6cb;
+            border: 2px solid #c3e6cb;
             color: #155724;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 16px;
+            padding: 14px;
+            border-radius: 10px;
+            margin-top: 18px;
             text-align: center;
             display: none;
+            font-weight: 600;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
         .info-box {
-            background: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 16px;
+            background: linear-gradient(135deg, #e7f3ff 0%, #d1e7ff 100%);
+            border: 2px solid #b3d9ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 18px;
         }
         
         .info-box h4 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 12px;
             color: #004085;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .info-box ul {
             list-style: none;
             font-size: 13px;
             color: #004085;
+            line-height: 1.8;
         }
         
         .info-box li {
-            padding: 4px 0;
-            padding-left: 20px;
+            padding: 6px 0;
+            padding-left: 24px;
             position: relative;
         }
         
         .info-box li::before {
-            content: '•';
+            content: '✓';
             position: absolute;
-            left: 8px;
+            left: 4px;
+            color: #4A90E2;
+            font-weight: bold;
         }
         
         kbd {
             background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 2px 6px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            padding: 3px 8px;
             font-family: monospace;
-            font-size: 11px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .alert {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+        
+        .alert-icon {
+            font-size: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .style-checkboxes {
+                grid-template-columns: 1fr;
+            }
+            
+            .setting-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .setting-control {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
@@ -256,7 +390,7 @@
     <div class="container">
         <div class="header">
             <h1>✨ AI Grammar Pro+ Settings</h1>
-            <p>Customize your writing assistant experience</p>
+            <p>Customize your intelligent writing assistant</p>
         </div>
         
         <div class="settings-card">
@@ -269,16 +403,17 @@
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Auto Grammar Check</h4>
-                        <p>Automatically check grammar as you type</p>
+                        <p>Automatically check grammar as you type in textareas</p>
                     </div>
                     <div class="setting-control">
                         <div class="toggle-switch active" id="auto-check-toggle"></div>
                     </div>
                 </div>
+                
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Theme</h4>
-                        <p>Choose your preferred appearance</p>
+                        <p>Choose your preferred color scheme</p>
                     </div>
                     <div class="setting-control">
                         <select id="theme-select" class="select-box">
@@ -288,10 +423,11 @@
                         </select>
                     </div>
                 </div>
+                
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Check Delay (ms)</h4>
-                        <p>Time to wait after typing before checking</p>
+                        <p>Time to wait after typing before checking grammar</p>
                     </div>
                     <div class="setting-control">
                         <input type="number" id="check-delay" class="input-number" min="500" max="5000" step="100" value="1000">
@@ -301,18 +437,18 @@
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Default Rephrase Style</h4>
-                        <p>Style to use when opening AI popup</p>
+                        <p>Initial style when opening the AI popup</p>
                     </div>
                     <div class="setting-control">
                         <select id="default-style" class="select-box">
-                            <option value="professional">Professional</option>
-                            <option value="casual">Casual</option>
-                            <option value="short">Concise</option>
-                            <option value="academic">Academic</option>
-                            <option value="creative">Creative</option>
-                            <option value="technical">Technical</option>
-                            <option value="simple">Simple</option>
-                            <option value="expand">Expand</option>
+                            <option value="professional">💼 Professional</option>
+                            <option value="casual">😊 Casual</option>
+                            <option value="short">✂️ Concise</option>
+                            <option value="academic">🎓 Academic</option>
+                            <option value="creative">✨ Creative</option>
+                            <option value="technical">⚙️ Technical</option>
+                            <option value="simple">📝 Simple</option>
+                            <option value="expand">📈 Expand</option>
                         </select>
                     </div>
                 </div>
@@ -320,7 +456,7 @@
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Show Statistics</h4>
-                        <p>Display error count and language detection</p>
+                        <p>Display error count and language detection info</p>
                     </div>
                     <div class="setting-control">
                         <div class="toggle-switch active" id="show-stats-toggle"></div>
@@ -330,7 +466,7 @@
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Enable Keyboard Shortcuts</h4>
-                        <p>Use Ctrl+Shift+G and Ctrl+Shift+R</p>
+                        <p>Use Ctrl+Shift+G and Ctrl+Shift+R hotkeys</p>
                     </div>
                     <div class="setting-control">
                         <div class="toggle-switch active" id="shortcuts-toggle"></div>
@@ -339,41 +475,45 @@
             </div>
         </div>
 
-         <div class="settings-card">
+        <div class="settings-card">
             <div class="settings-section">
                 <div class="section-title">
-                    <span class="section-icon">✨</span>
-                    Language tool & Ollama settings
-                    <span class="section-icon">✨</span>
+                    <span class="section-icon">🔗</span>
+                    Service Configuration
+                </div>
+                
+                <div class="alert alert-warning">
+                    <span class="alert-icon">⚠️</span>
+                    <div>Make sure LanguageTool and Ollama services are running and accessible before using the extension.</div>
                 </div>
                 
                 <div class="setting-item">
                     <div class="setting-label">
-                        <h4>Language Tool URL</h4>
-                        <p>Endpoint for grammar checking (e.g., https://api.languagetoolplus.com/v2/check)</p>
+                        <h4>LanguageTool URL</h4>
+                        <p>API endpoint for grammar checking</p>
                     </div>
                     <div class="setting-control">
-                        <input type="text" id="lt-url" class="select-box" style="width: 250px;" placeholder="https://api.languagetoolplus.com/v2/check">
+                        <input type="text" id="lt-url" class="input-text select-box" style="width: 300px;" placeholder="http://192.168.6.2:8010/v2/check">
                     </div>
                 </div>
 
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Ollama URL</h4>
-                        <p>Endpoint for AI generation (e.g., http://localhost:11434/api/generate)</p>
+                        <p>API endpoint for AI text generation</p>
                     </div>
                     <div class="setting-control">
-                        <input type="text" id="ollama-url" class="select-box" style="width: 250px;" placeholder="http://localhost:11434/api/generate">
+                        <input type="text" id="ollama-url" class="input-text select-box" style="width: 300px;" placeholder="http://192.168.6.2:30068/api/generate">
                     </div>
                 </div>
 
                 <div class="setting-item">
                     <div class="setting-label">
                         <h4>Ollama Model</h4>
-                        <p>The model tag to use (e.g., llama3.2:1b)</p>
+                        <p>Model tag to use for rephrasing (e.g., llama3.2:1b, mistral:latest)</p>
                     </div>
                     <div class="setting-control">
-                        <input type="text" id="ollama-model" class="input-number" style="width: 150px; text-align: left;" placeholder="llama3.2:1b">
+                        <input type="text" id="ollama-model" class="input-text" style="width: 180px; text-align: left;" placeholder="llama3.2:1b">
                     </div>
                 </div>
             </div>
@@ -393,7 +533,7 @@
         </div>
         
         <div class="settings-card">
-            <button class="save-button" id="save-button">💾 Save Settings</button>
+            <button class="save-button" id="save-button">💾 Save All Settings</button>
             <div class="success-message" id="success-message">
                 ✓ Settings saved successfully!
             </div>
@@ -403,29 +543,27 @@
             <div class="info-box">
                 <h4>⌨️ Keyboard Shortcuts</h4>
                 <ul>
-                    <li><kbd>Ctrl+Shift+G</kbd> / <kbd>Cmd+Shift+G</kbd> - Check grammar and open AI rephrase</li>
+                    <li><kbd>Ctrl+Shift+G</kbd> / <kbd>Cmd+Shift+G</kbd> - Check grammar and open AI rephrase popup</li>
                     <li><kbd>Ctrl+Shift+R</kbd> / <kbd>Cmd+Shift+R</kbd> - Quick rephrase with default style</li>
-                    <li><kbd>Esc</kbd> - Close popups</li>
+                    <li><kbd>Esc</kbd> - Close all popups</li>
                 </ul>
             </div>
         </div>
         
         <div class="settings-card">
             <div class="info-box">
-                <h4>ℹ️ About</h4>
-                <p style="margin-top: 8px; font-size: 13px; color: #004085;">
-                    AI Grammar Pro+ v3.0.0<br>
-                    Enhanced grammar checking with AI-powered rephrasing<br><br>
-                    <strong>Features:</strong>
+                <h4>ℹ️ About AI Grammar Pro+</h4>
+                <p style="margin-top: 12px; font-size: 14px; color: #004085; line-height: 1.7;">
+                    <strong>Version 4.0.0</strong> - Professional grammar checking and AI-powered rephrasing<br><br>
+                    <strong>Key Features:</strong>
                 </p>
-                <ul style="margin-top: 8px;">
-                    <li>Real-time grammar checking with LanguageTool</li>
-                    <li>8 AI rephrase styles with Ollama</li>
+                <ul style="margin-top: 12px;">
+                    <li>Real-time grammar checking with LanguageTool integration</li>
+                    <li>8 different AI rephrase styles with Ollama</li>
                     <li>Live style switching without popup reload</li>
-                    <li>Context menu integration</li>
-                    <li>Keyboard shortcuts</li>
-                    <li>Dark mode support</li>
-                    <li>Reduced motion accessibility</li>
+                    <li>Context menu and keyboard shortcuts</li>
+                    <li>Dark mode and accessibility support</li>
+                    <li>Professional, stable, and user-friendly interface</li>
                 </ul>
             </div>
         </div>

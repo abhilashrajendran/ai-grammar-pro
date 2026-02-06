@@ -1,11 +1,9 @@
 /**
- * AI Grammar Pro+ - Enhanced Content Script v3.1
+ * AI Grammar Pro+ - Content Script v4.1
+ * With comprehensive error handling and debugging
  */
 
-// ============================================================================
-// STATE MANAGEMENT
-// ============================================================================
-
+// State Management
 let checkTimer = null;
 let mirrorDiv = null;
 let currentMatches = [];
@@ -21,49 +19,71 @@ const observedTextareas = new WeakSet();
 const DEBOUNCE_DELAY = 1000;
 const MIN_TEXT_LENGTH = 3;
 
-// ============================================================================
-// THEME MANAGEMENT
-// ============================================================================
+// Extension Health Check
+let isExtensionValid = true;
+let hasShownReloadPrompt = false;
 
+function checkExtensionHealth() {
+    try {
+        if (!chrome.runtime || !chrome.runtime.id) {
+            isExtensionValid = false;
+            return false;
+        }
+        isExtensionValid = true;
+        return true;
+    } catch (error) {
+        isExtensionValid = false;
+        return false;
+    }
+}
+
+setInterval(checkExtensionHealth, 5000);
+
+// Theme Management
 function applyTheme(theme) {
     const root = document.documentElement;
     root.classList.remove('agp-theme-light', 'agp-theme-dark');
     
     if (theme === 'light') {
         root.classList.add('agp-theme-light');
-        root.style.setProperty('--agp-text-color', '#1a1a1b');
-        root.style.setProperty('--agp-bg-color', '#ffffff');
     } else if (theme === 'dark') {
         root.classList.add('agp-theme-dark');
-        root.style.setProperty('--agp-text-color', '#eeeeee');
-        root.style.setProperty('--agp-bg-color', '#1a1a1b');
     }
 }
 
-// ============================================================================
-// SETTINGS MANAGEMENT
-// ============================================================================
-
+// Settings Management
 async function loadSettings() {
     try {
+        if (!checkExtensionHealth()) {
+            console.warn('[AGP] Extension invalid, using defaults');
+            return getDefaultSettings();
+        }
+        
         const response = await sendMessage({ action: 'getSettings' });
         if (response && response.settings) {
             userSettings = response.settings;
             applyTheme(response.settings.theme || 'auto');
+            console.log('[AGP] Settings loaded');
             return response.settings;
         }
     } catch (error) {
-        // Silent fail
+        console.error('[AGP] Load settings failed:', error);
     }
     
+    return getDefaultSettings();
+}
+
+function getDefaultSettings() {
     return {
+        languageToolUrl: 'http://192.168.6.2:8010/v2/check',
+        ollamaUrl: 'http://192.168.6.2:30068/api/generate',
+        ollamaModel: 'llama3.2:1b',
         autoCheck: true,
         checkDelay: 1000,
         enabledStyles: ['professional', 'casual', 'short', 'academic', 'creative', 'technical', 'simple', 'expand'],
         defaultStyle: 'professional',
         theme: 'auto',
         showStatistics: true,
-        highlightColor: 'rgba(255, 77, 77, 0.3)',
         enableShortcuts: true
     };
 }
@@ -73,26 +93,38 @@ loadSettings().then(settings => {
     currentSelectedStyle = settings.defaultStyle;
 });
 
-// ============================================================================
-// MESSAGING HELPER
-// ============================================================================
-
+// Messaging Helper
 function sendMessage(message) {
     return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage(message, (response) => {
-            if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-            } else {
-                resolve(response);
-            }
-        });
+        if (!checkExtensionHealth()) {
+            reject(new Error('Extension reloaded. Refresh page.'));
+            return;
+        }
+        
+        try {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    const error = chrome.runtime.lastError;
+                    console.error('[AGP] Runtime error:', error);
+                    
+                    if (error.message && error.message.includes('Extension context invalidated')) {
+                        isExtensionValid = false;
+                        reject(new Error('Extension reloaded. Refresh page.'));
+                    } else {
+                        reject(error);
+                    }
+                } else {
+                    resolve(response);
+                }
+            });
+        } catch (error) {
+            console.error('[AGP] Send message error:', error);
+            reject(error);
+        }
     });
 }
 
-// ============================================================================
-// TEXTAREA DETECTION & TEXT EXTRACTION
-// ============================================================================
-
+// Textarea Detection
 function isTextarea(element) {
     return element && 
            element.tagName === 'TEXTAREA' && 
@@ -110,17 +142,13 @@ function setTextInTextarea(textarea, text) {
     if (!textarea) return;
     
     const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    
     textarea.value = text;
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     textarea.dispatchEvent(new Event('change', { bubbles: true }));
     
     try {
         textarea.setSelectionRange(start, start);
-    } catch (e) {
-        // Ignore
-    }
+    } catch (e) {}
 }
 
 function replaceTextRange(textarea, offset, length, replacement) {
@@ -135,10 +163,7 @@ function replaceTextRange(textarea, offset, length, replacement) {
     }, 100);
 }
 
-// ============================================================================
-// FLOATING BUTTON
-// ============================================================================
-
+// Floating Button
 function createFloatingButton(textarea) {
     if (!textarea || !isTextarea(textarea)) return;
     
@@ -152,8 +177,7 @@ function createFloatingButton(textarea) {
     floatingButton = document.createElement('button');
     floatingButton.className = 'agp-float-btn';
     floatingButton.setAttribute('type', 'button');
-    floatingButton.setAttribute('title', 'Check grammar and get AI suggestions (Ctrl+Shift+G)');
-    floatingButton.setAttribute('aria-label', 'Grammar check');
+    floatingButton.setAttribute('title', 'Check grammar (Ctrl+Shift+G)');
     floatingButton.innerHTML = `
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
@@ -171,20 +195,15 @@ function positionFloatingButton(textarea) {
     if (!floatingButton || !textarea) return;
     
     const rect = textarea.getBoundingClientRect();
-    const scrollY = window.scrollY || document.documentElement.scrollTop;
-    const scrollX = window.scrollX || document.documentElement.scrollLeft;
-    
-    floatingButton.style.top = `${rect.top + scrollY + 8}px`;
-    floatingButton.style.left = `${rect.right + scrollX - 48}px`;
+    floatingButton.style.top = `${rect.top + window.scrollY + 8}px`;
+    floatingButton.style.left = `${rect.right + window.scrollX - 48}px`;
 }
 
 function updateFloatingButton(errorCount) {
     if (!floatingButton) return;
     
     const existingBadge = floatingButton.querySelector('.agp-error-badge');
-    if (existingBadge) {
-        existingBadge.remove();
-    }
+    if (existingBadge) existingBadge.remove();
     
     if (errorCount > 0) {
         floatingButton.classList.add('has-errors');
@@ -200,14 +219,8 @@ function updateFloatingButton(errorCount) {
 
 function setButtonLoading(isLoading) {
     if (!floatingButton) return;
-    
-    if (isLoading) {
-        floatingButton.classList.add('loading');
-        floatingButton.disabled = true;
-    } else {
-        floatingButton.classList.remove('loading');
-        floatingButton.disabled = false;
-    }
+    floatingButton.classList.toggle('loading', isLoading);
+    floatingButton.disabled = isLoading;
 }
 
 function removeFloatingButton() {
@@ -217,10 +230,7 @@ function removeFloatingButton() {
     }
 }
 
-// ============================================================================
-// MIRROR LAYER FOR HIGHLIGHTING
-// ============================================================================
-
+// Mirror Layer
 function createMirror(textarea) {
     if (!textarea) return;
     if (mirrorDiv) mirrorDiv.remove();
@@ -238,72 +248,63 @@ function createMirror(textarea) {
         width: style.width,
         height: style.height,
         padding: style.padding,
-        paddingTop: style.paddingTop,
-        paddingRight: style.paddingRight,
-        paddingBottom: style.paddingBottom,
-        paddingLeft: style.paddingLeft,
-        border: style.border,
+        border: 'none',
+        font: style.font,
         fontSize: style.fontSize,
         fontFamily: style.fontFamily,
         lineHeight: style.lineHeight,
-        letterSpacing: style.letterSpacing,
         whiteSpace: 'pre-wrap',
         wordWrap: 'break-word',
-        overflowWrap: style.overflowWrap,
         overflow: 'hidden',
         color: 'transparent',
-        pointerEvents: 'none',
-        zIndex: '100000',
-        boxSizing: style.boxSizing,
-        margin: '0',
-        background: 'transparent',
-        borderRadius: style.borderRadius,
-        outline: 'none'
+        background: 'transparent'
     });
     
     document.body.appendChild(mirrorDiv);
-    mirrorDiv._textarea = textarea;
 }
 
 function updateMirror(textarea, matches) {
-    if (!textarea || !isTextarea(textarea)) return;
-    
-    if (!matches || matches.length === 0) {
-        clearMirror();
-        return;
-    }
-    
-    if (!mirrorDiv || mirrorDiv._textarea !== textarea) {
-        createMirror(textarea);
-    }
+    if (!textarea || !mirrorDiv) return;
     
     const text = getTextFromTextarea(textarea);
-    let html = '';
+    
+    // Clear current content completely
+    mirrorDiv.innerHTML = '';
+    
     let lastIndex = 0;
     
-    matches.forEach(match => {
-        html += escapeHtml(text.slice(lastIndex, match.offset));
+    matches.forEach((match, idx) => {
+        const start = match.offset;
+        const end = match.offset + match.length;
         
-        const errorText = text.slice(match.offset, match.offset + match.length);
-        html += `<span class="agp-error-highlight" data-match-offset="${match.offset}" data-match-length="${match.length}">${escapeHtml(errorText)}</span>`;
+        // 1. Append text occurring BEFORE the error
+        const textBefore = text.slice(lastIndex, start);
+        if (textBefore) {
+            mirrorDiv.appendChild(document.createTextNode(textBefore));
+        }
         
-        lastIndex = match.offset + match.length;
-    });
-    
-    html += escapeHtml(text.slice(lastIndex));
-    
-    mirrorDiv.innerHTML = html;
-    
-    mirrorDiv.querySelectorAll('.agp-error-highlight').forEach(span => {
-        span.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const offset = parseInt(span.dataset.matchOffset);
-            const matchData = matches.find(m => m.offset === offset);
-            if (matchData) {
-                showGrammarSuggestion(matchData, textarea);
-            }
+        // 2. Create and append the interactive error span
+        const errorSpan = document.createElement('span');
+        errorSpan.className = 'agp-error-highlight';
+        errorSpan.setAttribute('data-match-index', idx);
+        errorSpan.textContent = text.slice(start, end);
+        
+        // The event listener is preserved because we are appending the Element, not a string
+        errorSpan.addEventListener('click', (e) => {
+            e.stopPropagation(); // Stop click from focusing the textarea below immediately
+            showGrammarPopup(match, textarea);
         });
+        
+        mirrorDiv.appendChild(errorSpan);
+        
+        lastIndex = end;
     });
+    
+    // 3. Append any remaining text after the last error
+    const textAfter = text.slice(lastIndex);
+    if (textAfter) {
+        mirrorDiv.appendChild(document.createTextNode(textAfter));
+    }
 }
 
 function clearMirror() {
@@ -313,46 +314,49 @@ function clearMirror() {
     }
 }
 
-// ============================================================================
-// TEXT CHECKING
-// ============================================================================
-
+// Grammar Checking
 async function checkText(textarea) {
-    if (!textarea || !isTextarea(textarea)) return;
-    if (isCheckingInProgress) return;
+    if (!textarea || !isTextarea(textarea) || isCheckingInProgress) return;
     
     const text = getTextFromTextarea(textarea);
     
-    if (text === lastCheckedText) return;
-    
     if (text.trim().length < MIN_TEXT_LENGTH) {
         clearMirror();
+        currentMatches = [];
         updateFloatingButton(0);
         return;
     }
     
+    if (text === lastCheckedText) return;
+    
     isCheckingInProgress = true;
-    lastCheckedText = text;
     setButtonLoading(true);
+    lastCheckedText = text;
     
     try {
         const response = await sendMessage({
             action: 'checkText',
             text: text,
-            grammarOnly: false
+            grammarOnly: true
         });
         
-        if (response) {
-            if (response.error) {
-                showToast(response.error, 'error');
-            }
-            
+        console.log('[AGP] Check response:', response);
+        
+        if (response && response.error) {
+            console.warn('[AGP] Error:', response.error);
+            currentMatches = [];
+            clearMirror();
+        } else if (response) {
             currentMatches = response.grammar || [];
+            createMirror(textarea);
             updateMirror(textarea, currentMatches);
             updateFloatingButton(currentMatches.length);
         }
     } catch (error) {
-        showToast('Check failed. Please try again.', 'error');
+        console.error('[AGP] Check failed:', error);
+        currentMatches = [];
+        clearMirror();
+        updateFloatingButton(0);
     } finally {
         isCheckingInProgress = false;
         setButtonLoading(false);
@@ -362,81 +366,107 @@ async function checkText(textarea) {
 async function performCheck(textarea) {
     if (!textarea || !isTextarea(textarea)) return;
     
-    const text = getTextFromTextarea(textarea);
-    if (!text || text.trim().length === 0) {
-        showToast('Please enter some text first', 'info');
+    if (!checkExtensionHealth()) {
+        showPageReloadPrompt();
         return;
     }
     
-    closeAllPopups();
+    const text = getTextFromTextarea(textarea);
+    
+    if (text.trim().length < MIN_TEXT_LENGTH) {
+        showToast('Please enter some text first', 'warning');
+        return;
+    }
+    
     setButtonLoading(true);
     
     try {
-        const response = await sendMessage({
-            action: 'checkText',
-            text: text,
+        console.log('[AGP] Performing check...', {
+            textLength: text.length,
             style: currentSelectedStyle
         });
         
-        if (response) {
+        const response = await sendMessage({
+            action: 'checkText',
+            text: text,
+            style: currentSelectedStyle,
+            grammarOnly: false
+        });
+        
+        console.log('[AGP] Response:', response);
+        
+        if (response && response.error) {
+            console.error('[AGP] Error:', response.error);
+            showToast(response.error, 'error');
+        } else if (response) {
             currentMatches = response.grammar || [];
-            currentAIResponse = response.ai || '';
+            currentAIResponse = response.ai || null;
             
+            console.log('[AGP] Results:', {
+                grammar: currentMatches.length,
+                ai: !!currentAIResponse
+            });
+            
+            createMirror(textarea);
             updateMirror(textarea, currentMatches);
             updateFloatingButton(currentMatches.length);
-            
             createAIPopup(textarea);
+        } else {
+            showToast('No response from background', 'error');
         }
     } catch (error) {
-        showToast('Check failed. Please try again.', 'error');
+        console.error('[AGP] Check failed:', error);
+        
+        if (error.message && error.message.includes('refresh')) {
+            showPageReloadPrompt();
+        } else {
+            showToast('Check failed. Verify services are running:\n• http://192.168.6.2:8010\n• http://192.168.6.2:30068', 'error');
+        }
     } finally {
         setButtonLoading(false);
     }
 }
 
-// ============================================================================
-// GRAMMAR SUGGESTION POPUP
-// ============================================================================
-
-function showGrammarSuggestion(match, textarea) {
+// Grammar Popup
+function showGrammarPopup(match, textarea) {
     closeAllPopups();
     
     const popup = document.createElement('div');
     popup.id = 'agp-grammar-popup';
-    popup.className = 'agp-popup';
+    popup.className = 'agp-popup agp-grammar-popup';
     
     const headerDiv = document.createElement('div');
     headerDiv.className = 'agp-popup-header';
-    
-    const titleDiv = document.createElement('div');
-    titleDiv.className = 'agp-popup-title';
-    titleDiv.innerHTML = `<span class="agp-popup-title-icon">✏️</span>${match.message || 'Grammar suggestion'}`;
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'agp-close-btn';
-    closeBtn.innerHTML = '×';
-    closeBtn.onclick = () => popup.remove();
-    
-    headerDiv.appendChild(titleDiv);
-    headerDiv.appendChild(closeBtn);
+    headerDiv.innerHTML = '<div class="agp-popup-title"><span class="agp-popup-title-icon">🔍</span>Grammar Suggestion</div><button class="agp-close-btn" onclick="this.closest(\'.agp-popup\').remove()">×</button>';
     
     const bodyDiv = document.createElement('div');
     bodyDiv.className = 'agp-popup-body';
     
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'agp-suggestion-message';
+    messageDiv.textContent = match.message || 'Possible error detected';
+    bodyDiv.appendChild(messageDiv);
+    
     if (match.replacements && match.replacements.length > 0) {
         match.replacements.slice(0, 5).forEach(replacement => {
-            const suggestionBtn = document.createElement('button');
-            suggestionBtn.className = 'agp-suggestion-btn';
-            suggestionBtn.textContent = replacement.value;
-            suggestionBtn.onclick = () => {
+            const suggestionDiv = document.createElement('div');
+            suggestionDiv.className = 'agp-suggestion-item';
+            
+            suggestionDiv.innerHTML = `
+                <div class="agp-suggestion-value">${escapeHtml(replacement.value)}</div>
+                <button class="agp-suggestion-apply-btn">Apply</button>
+            `;
+            
+            suggestionDiv.querySelector('.agp-suggestion-apply-btn').onclick = () => {
                 replaceTextRange(textarea, match.offset, match.length, replacement.value);
                 popup.remove();
-                showToast('Text replaced', 'success');
+                showToast('Applied', 'success');
             };
-            bodyDiv.appendChild(suggestionBtn);
+            
+            bodyDiv.appendChild(suggestionDiv);
         });
     } else {
-        bodyDiv.innerHTML = '<div class="agp-suggestion-message">No suggestions available</div>';
+        bodyDiv.innerHTML += '<div class="agp-empty-state"><p>No suggestions</p></div>';
     }
     
     popup.appendChild(headerDiv);
@@ -453,10 +483,7 @@ function showGrammarSuggestion(match, textarea) {
     makeDraggable(popup, headerDiv);
 }
 
-// ============================================================================
-// AI POPUP
-// ============================================================================
-
+// AI Popup
 function createAIPopup(textarea) {
     closeAllPopups();
     
@@ -466,18 +493,7 @@ function createAIPopup(textarea) {
     
     const headerDiv = document.createElement('div');
     headerDiv.className = 'agp-popup-header';
-    
-    const titleDiv = document.createElement('div');
-    titleDiv.className = 'agp-popup-title';
-    titleDiv.innerHTML = '<span class="agp-popup-title-icon">✨</span>AI Grammar & Rephrase';
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'agp-close-btn';
-    closeBtn.innerHTML = '×';
-    closeBtn.onclick = () => popup.remove();
-    
-    headerDiv.appendChild(titleDiv);
-    headerDiv.appendChild(closeBtn);
+    headerDiv.innerHTML = '<div class="agp-popup-title"><span class="agp-popup-title-icon">✨</span>AI Grammar & Rephrase</div><button class="agp-close-btn" onclick="this.closest(\'.agp-popup\').remove()">×</button>';
     
     const bodyDiv = document.createElement('div');
     bodyDiv.className = 'agp-popup-body';
@@ -485,13 +501,10 @@ function createAIPopup(textarea) {
     if (currentMatches.length > 0) {
         const statsDiv = document.createElement('div');
         statsDiv.className = 'agp-suggestion-message';
-        statsDiv.textContent = `Found ${currentMatches.length} grammar issue${currentMatches.length !== 1 ? 's' : ''}. Click on underlined text for suggestions.`;
+        statsDiv.textContent = `Found ${currentMatches.length} grammar issue${currentMatches.length !== 1 ? 's' : ''}. Click underlined text for suggestions.`;
         bodyDiv.appendChild(statsDiv);
     } else {
-        const statsDiv = document.createElement('div');
-        statsDiv.className = 'agp-empty-state';
-        statsDiv.innerHTML = '<div class="agp-empty-icon">✓</div><h3>No Issues Found</h3><p>Your text looks great!</p>';
-        bodyDiv.appendChild(statsDiv);
+        bodyDiv.innerHTML = '<div class="agp-empty-state"><div class="agp-empty-icon">✓</div><h3>No Issues Found</h3><p>Your text looks great!</p></div>';
     }
     
     loadAndDisplayStyleButtons(bodyDiv, textarea);
@@ -501,36 +514,31 @@ function createAIPopup(textarea) {
     
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'agp-popup-actions';
+    actionsDiv.innerHTML = `
+        <button class="agp-btn" id="copy-btn"><span class="agp-btn-icon">📋</span>Copy</button>
+        <button class="agp-btn agp-btn-primary" id="apply-btn"><span class="agp-btn-icon">✓</span>Apply</button>
+    `;
     
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'agp-btn';
-    copyBtn.innerHTML = '<span class="agp-btn-icon">📋</span>Copy';
-    copyBtn.onclick = async () => {
+    actionsDiv.querySelector('#copy-btn').onclick = async () => {
         if (currentAIResponse) {
             await copyToClipboard(currentAIResponse);
-            showToast('Copied to clipboard', 'success');
+            showToast('Copied', 'success');
         }
     };
     
-    const applyBtn = document.createElement('button');
-    applyBtn.className = 'agp-btn agp-btn-primary';
-    applyBtn.innerHTML = '<span class="agp-btn-icon">✓</span>Apply';
-    applyBtn.onclick = () => {
+    actionsDiv.querySelector('#apply-btn').onclick = () => {
         if (currentAIResponse) {
             setTextInTextarea(textarea, currentAIResponse);
             popup.remove();
-            showToast('Text applied', 'success');
+            showToast('Applied', 'success');
         }
     };
     
-    actionsDiv.appendChild(copyBtn);
-    actionsDiv.appendChild(applyBtn);
     popup.appendChild(actionsDiv);
     
     document.body.appendChild(popup);
     currentPopup = popup;
     
-    const rect = textarea.getBoundingClientRect();
     popup.style.position = 'fixed';
     popup.style.top = '50%';
     popup.style.left = '50%';
@@ -542,11 +550,7 @@ function createAIPopup(textarea) {
 async function loadAndDisplayStyleButtons(container, textarea) {
     const stylesDiv = document.createElement('div');
     stylesDiv.className = 'agp-style-section';
-    
-    const styleLabel = document.createElement('div');
-    styleLabel.className = 'agp-style-label';
-    styleLabel.textContent = 'Rephrase Style:';
-    stylesDiv.appendChild(styleLabel);
+    stylesDiv.innerHTML = '<div class="agp-style-label">Rephrase Style:</div>';
     
     const styleGrid = document.createElement('div');
     styleGrid.className = 'agp-style-grid';
@@ -559,15 +563,18 @@ async function loadAndDisplayStyleButtons(container, textarea) {
             const styleInfo = styles[styleKey];
             const btn = document.createElement('button');
             btn.className = 'agp-style-btn';
+            btn.setAttribute('data-style-key', styleKey);
+            
             if (styleKey === currentSelectedStyle) {
                 btn.classList.add('active');
             }
+            
             btn.innerHTML = `<span class="agp-style-icon">${styleInfo.icon}</span>${styleInfo.label}`;
             btn.onclick = () => switchStyle(styleKey, styleGrid, textarea);
             styleGrid.appendChild(btn);
         });
     } catch (error) {
-        // Silent fail
+        console.error('[AGP] Load styles failed:', error);
     }
     
     stylesDiv.appendChild(styleGrid);
@@ -578,15 +585,9 @@ async function loadAndDisplayStyleButtons(container, textarea) {
     responseContainer.id = 'agp-ai-response-container';
     
     if (currentAIResponse) {
-        const responseDiv = document.createElement('div');
-        responseDiv.className = 'agp-ai-response';
-        responseDiv.textContent = currentAIResponse;
-        responseContainer.appendChild(responseDiv);
+        responseContainer.innerHTML = `<div class="agp-ai-response">${escapeHtml(currentAIResponse)}</div>`;
     } else {
-        const statusDiv = document.createElement('div');
-        statusDiv.className = 'agp-status-message';
-        statusDiv.innerHTML = '<span class="agp-status-icon">💭</span>Select a style to rephrase your text';
-        responseContainer.appendChild(statusDiv);
+        responseContainer.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">💭</span>Select a style to rephrase</div>';
     }
     
     container.appendChild(responseContainer);
@@ -596,7 +597,9 @@ async function switchStyle(styleKey, styleGrid, textarea) {
     currentSelectedStyle = styleKey;
     
     styleGrid.querySelectorAll('.agp-style-btn').forEach(btn => btn.classList.remove('active'));
-    styleGrid.querySelector(`button:nth-child(${Array.from(styleGrid.children).findIndex(el => el.textContent.includes(styleKey.charAt(0).toUpperCase() + styleKey.slice(1))) + 1})`).classList.add('active');
+    
+    const activeBtn = styleGrid.querySelector(`[data-style-key="${styleKey}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
     
     const container = document.getElementById('agp-ai-response-container');
     if (!container) return;
@@ -606,6 +609,8 @@ async function switchStyle(styleKey, styleGrid, textarea) {
     const text = getTextFromTextarea(textarea);
     
     try {
+        console.log('[AGP] Switching to:', styleKey);
+        
         const response = await sendMessage({
             action: 'checkText',
             text: text,
@@ -613,33 +618,28 @@ async function switchStyle(styleKey, styleGrid, textarea) {
             grammarOnly: false
         });
         
+        console.log('[AGP] Switch response:', response);
+        
         if (response && response.ai) {
             currentAIResponse = response.ai;
-            container.innerHTML = '';
-            const responseDiv = document.createElement('div');
-            responseDiv.className = 'agp-ai-response';
-            responseDiv.textContent = response.ai;
-            container.appendChild(responseDiv);
+            container.innerHTML = `<div class="agp-ai-response">${escapeHtml(response.ai)}</div>`;
+        } else if (response && response.error) {
+            console.error('[AGP] Error:', response.error);
+            container.innerHTML = `<div class="agp-status-message"><span class="agp-status-icon">❌</span>${escapeHtml(response.error)}</div>`;
         } else {
             container.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">❌</span>Failed to rephrase</div>';
         }
     } catch (error) {
+        console.error('[AGP] Switch failed:', error);
         container.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">❌</span>Error occurred</div>';
     }
 }
 
-// ============================================================================
-// UTILITIES
-// ============================================================================
-
+// Utilities
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 async function copyToClipboard(text) {
@@ -677,12 +677,35 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+function showPageReloadPrompt() {
+    if (hasShownReloadPrompt || document.getElementById('agp-reload-prompt')) return;
+    hasShownReloadPrompt = true;
+    
+    const prompt = document.createElement('div');
+    prompt.id = 'agp-reload-prompt';
+    prompt.className = 'agp-reload-prompt';
+    prompt.innerHTML = `
+        <div class="agp-reload-content">
+            <span class="agp-reload-icon">🔄</span>
+            <div class="agp-reload-text">
+                <strong>Extension was updated</strong>
+                <p>Please refresh this page</p>
+            </div>
+            <button class="agp-reload-button" onclick="location.reload()">Refresh</button>
+            <button class="agp-reload-close" onclick="this.closest(\'.agp-reload-prompt\').remove()">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(prompt);
+    setTimeout(() => prompt.remove(), 10000);
+}
+
 function closeAllPopups() {
     if (currentPopup) {
         currentPopup.remove();
         currentPopup = null;
     }
-    document.querySelectorAll('#agp-grammar-popup, #agp-ai-popup').forEach(p => p.remove());
+    document.querySelectorAll('.agp-popup').forEach(p => p.remove());
 }
 
 function makeDraggable(element, handle) {
@@ -722,16 +745,12 @@ function makeDraggable(element, handle) {
     });
 }
 
-// ============================================================================
-// EVENT LISTENERS
-// ============================================================================
-
+// Event Listeners
 document.addEventListener('input', (e) => {
     if (!isTextarea(e.target)) return;
     currentTarget = e.target;
     clearTimeout(checkTimer);
-    const delay = userSettings?.checkDelay || DEBOUNCE_DELAY;
-    checkTimer = setTimeout(() => checkText(e.target), delay);
+    checkTimer = setTimeout(() => checkText(e.target), userSettings?.checkDelay || DEBOUNCE_DELAY);
 });
 
 document.addEventListener('focusin', (e) => {
@@ -765,10 +784,8 @@ function handleWindowResize() {
     
     if (mirrorDiv) {
         const rect = currentTarget.getBoundingClientRect();
-        const scrollY = window.scrollY || document.documentElement.scrollTop;
-        const scrollX = window.scrollX || document.documentElement.scrollLeft;
-        mirrorDiv.style.top = `${rect.top + scrollY}px`;
-        mirrorDiv.style.left = `${rect.left + scrollX}px`;
+        mirrorDiv.style.top = `${rect.top + window.scrollY}px`;
+        mirrorDiv.style.left = `${rect.left + window.scrollX}px`;
     }
 }
 
@@ -804,10 +821,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// ============================================================================
-// MESSAGE LISTENER
-// ============================================================================
-
+// Message Listener
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'contextMenuAction') {
         if (currentTarget && isTextarea(currentTarget)) {
@@ -825,10 +839,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-// ============================================================================
-// DYNAMIC ELEMENT DETECTION
-// ============================================================================
-
+// Dynamic Element Detection
 const mutationObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
@@ -837,8 +848,7 @@ const mutationObserver = new MutationObserver((mutations) => {
                     observedTextareas.add(node);
                 }
                 if (node.querySelectorAll) {
-                    const textareas = node.querySelectorAll('textarea');
-                    textareas.forEach(ta => {
+                    node.querySelectorAll('textarea').forEach(ta => {
                         if (isTextarea(ta) && !observedTextareas.has(ta)) {
                             observedTextareas.add(ta);
                         }
@@ -861,3 +871,6 @@ window.addEventListener('load', () => {
         }
     });
 });
+
+console.log('[AGP] AI Grammar Pro+ v4.1 loaded');
+console.log('[AGP] Services: http://192.168.6.2:8010 & http://192.168.6.2:30068');
