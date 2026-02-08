@@ -11,10 +11,8 @@
     --agp-primary-dark: #357ABD;
     --agp-primary-light: #EBF4FF;
     --agp-error: #e63946;
-    /* Softer red */
     --agp-error-light: #ffe5e7;
     --agp-success: #2a9d8f;
-    /* Modern teal-green */
     --agp-success-light: #e0f2f1;
     --agp-warning: #e9c46a;
     --agp-info: #457b9d;
@@ -29,7 +27,6 @@
     --agp-text-secondary: #718096;
     --agp-text-muted: #a0aec0;
 
-    /* Modern, softer shadows */
     --agp-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --agp-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --agp-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -39,7 +36,6 @@
     --agp-font-mono: 'SF Mono', 'Roboto Mono', Menlo, monospace;
 
     --agp-radius: 8px;
-    /* Slightly more rounded */
     --agp-radius-sm: 6px;
     --agp-radius-lg: 12px;
 
@@ -51,7 +47,6 @@
     --agp-z-toast: 300000;
 }
 
-/* Dark mode */
 @media (prefers-color-scheme: dark) {
     :root:not(.agp-theme-light) {
         --agp-bg: #1a202c;
@@ -77,13 +72,12 @@
 }
 
 /* ============================================================================
-   FLOATING BUTTON - MODERN
+   FLOATING BUTTON
    ============================================================================ */
 
 .agp-float-btn {
     position: absolute;
     width: 44px;
-    /* Increased size for better tap target */
     height: 44px;
     padding: 0;
     background: var(--agp-primary);
@@ -138,7 +132,6 @@
     box-shadow: var(--agp-shadow-focus);
 }
 
-/* Error badge - modern */
 .agp-error-badge {
     position: absolute;
     top: -2px;
@@ -187,7 +180,7 @@
 }
 
 /* ============================================================================
-   MODERN POPUPS
+   POPUPS
    ============================================================================ */
 
 .agp-popup {
@@ -199,7 +192,6 @@
     z-index: var(--agp-z-popup);
     font-family: var(--agp-font-family);
     min-width: 340px;
-    /* Slightly wider */
     max-width: 480px;
     max-height: 85vh;
     overflow: hidden;
@@ -233,19 +225,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    /* Increased padding */
     border-bottom: 1px solid var(--agp-border);
     background: var(--agp-bg);
-    /* Clean white header */
     flex-shrink: 0;
     cursor: move;
-}
-
-.agp-style-label {
-    border-bottom: 1px solid var(--agp-border);
-    margin-bottom: 10px;
-    background: var(--agp-bg);
-    color: var(--agp-text);
 }
 
 .agp-popup-title {
@@ -284,7 +267,6 @@
 
 .agp-popup-body {
     padding: 20px;
-    /* Comfortable padding */
     overflow-y: auto;
     flex: 1;
     background: var(--agp-bg);
@@ -300,25 +282,11 @@
 }
 
 /* ============================================================================
-   MODERN ERROR SUGGESTIONS
+   SUGGESTIONS & MESSAGES
    ============================================================================ */
 
-.agp-error-card {
-    background: var(--agp-bg);
-    border: 1px solid var(--agp-border);
-    border-radius: var(--agp-radius);
-    padding: 16px;
-    margin-bottom: 16px;
-    transition: var(--agp-transition);
-    /* box-shadow: var(--agp-shadow-sm); removed for cleaner look, relying on border */
-}
-
-.agp-error-card:hover {
-    border-color: var(--agp-primary);
-    box-shadow: var(--agp-shadow-md);
-}
-
-.agp-error-message {
+.agp-error-message,
+.agp-suggestion-message {
     font-size: 14px;
     font-weight: 600;
     color: var(--agp-error);
@@ -328,21 +296,11 @@
     gap: 8px;
 }
 
-.agp-error-message-icon {
-    color: var(--agp-error);
+.agp-suggestion-message {
+    color: var(--agp-text);
+    /* Suggestion messages might be neutral */
+    font-weight: 500;
 }
-
-.agp-error-context {
-    font-size: 14px;
-    color: var(--agp-text-secondary);
-    margin-bottom: 12px;
-    padding: 12px 16px;
-    background: var(--agp-bg-tertiary);
-    border-radius: var(--agp-radius-sm);
-    border-left: 3px solid var(--agp-border-light);
-    line-height: 1.6;
-}
-
 
 .agp-suggestions {
     display: flex;
@@ -388,30 +346,24 @@
     font-weight: bold;
 }
 
-
 /* ============================================================================
-   AI STYLE SELECTOR
+   style SELECTOR
    ============================================================================ */
 
 .agp-style-selector {
     margin-bottom: 20px;
 }
 
-.agp-style-btn {
+.agp-style-label {
+    border-bottom: 1px solid var(--agp-border);
+    margin-bottom: 10px;
     background: var(--agp-bg);
-    border: 1px solid var(--agp-border);
-    border-radius: var(--agp-radius);
-    padding: 12px 16px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
     color: var(--agp-text);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: var(--agp-transition);
-    width: 100%;
-    /* If grid, adjusted by grid container */
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 4px;
 }
 
 .agp-style-grid {
@@ -449,6 +401,12 @@
     font-weight: 600;
 }
 
+.agp-style-icon {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
 /* ============================================================================
    AI RESPONSE AREA
    ============================================================================ */
@@ -467,9 +425,12 @@
 .agp-status-message {
     padding: 16px;
     background: var(--agp-bg-secondary);
-    /* or light variant of status color */
     border-radius: var(--agp-radius);
     gap: 12px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--agp-text);
 }
 
 .agp-status-success .agp-status-icon {
@@ -478,6 +439,10 @@
 
 .agp-status-error .agp-status-icon {
     color: var(--agp-error);
+}
+
+.agp-status-icon {
+    font-size: 20px;
 }
 
 /* ============================================================================
@@ -529,11 +494,18 @@
     box-shadow: var(--agp-shadow-md);
 }
 
+.agp-btn-icon {
+    font-size: 16px;
+}
+
 /* ============================================================================
    TOASTS
    ============================================================================ */
 
 .agp-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
     background: var(--agp-text);
     color: var(--agp-bg);
     padding: 12px 16px;
@@ -541,6 +513,108 @@
     box-shadow: var(--agp-shadow-lg);
     font-weight: 500;
     font-size: 14px;
+    z-index: var(--agp-z-toast);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: var(--agp-transition);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.agp-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.agp-toast.success {
+    background: var(--agp-success);
+}
+
+.agp-toast.error {
+    background: var(--agp-error);
+}
+
+.agp-toast.warning {
+    background: var(--agp-warning);
+    color: #333;
+}
+
+/* ============================================================================
+   RELOAD PROMPT
+   ============================================================================ */
+
+.agp-reload-prompt {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--agp-bg);
+    border: 1px solid var(--agp-border);
+    padding: 16px;
+    border-radius: var(--agp-radius);
+    box-shadow: var(--agp-shadow-lg);
+    z-index: var(--agp-z-toast);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: agp-pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width: 320px;
+}
+
+.agp-reload-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.agp-reload-icon {
+    font-size: 24px;
+    color: var(--agp-primary);
+}
+
+.agp-reload-text strong {
+    display: block;
+    font-size: 14px;
+    color: var(--agp-text);
+    margin-bottom: 2px;
+}
+
+.agp-reload-text p {
+    font-size: 12px;
+    color: var(--agp-text-secondary);
+    margin: 0;
+}
+
+.agp-reload-button {
+    background: var(--agp-primary);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: var(--agp-radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--agp-transition);
+}
+
+.agp-reload-button:hover {
+    background: var(--agp-primary-dark);
+}
+
+.agp-reload-close {
+    background: transparent;
+    border: none;
+    color: var(--agp-text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
+
+.agp-reload-close:hover {
+    color: var(--agp-text);
 }
 
 /* ============================================================================

@@ -548,7 +548,7 @@ function createAIPopup(textarea) {
 
 async function loadAndDisplayStyleButtons(container, textarea) {
     const stylesDiv = document.createElement('div');
-    stylesDiv.className = 'agp-style-section';
+    stylesDiv.className = 'agp-style-selector';
     stylesDiv.innerHTML = '<div class="agp-style-label">Rephrase Style:</div>';
 
     const styleGrid = document.createElement('div');
