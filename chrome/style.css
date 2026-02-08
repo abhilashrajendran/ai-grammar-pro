@@ -243,6 +243,7 @@
 
 .agp-style-label {
     border-bottom: 1px solid var(--agp-border);
+    margin-bottom: 10px;
     background: var(--agp-bg);
     color: var(--agp-text);
 }
@@ -415,8 +416,25 @@
 
 .agp-style-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.agp-style-btn {
+    background: var(--agp-bg);
+    border: 1px solid var(--agp-border);
+    border-radius: var(--agp-radius);
+    padding: 8px 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--agp-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: var(--agp-transition);
+    width: 100%;
 }
 
 .agp-style-btn:hover {
