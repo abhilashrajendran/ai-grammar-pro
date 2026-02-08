@@ -191,9 +191,11 @@
     box-shadow: var(--agp-shadow-lg);
     z-index: var(--agp-z-popup);
     font-family: var(--agp-font-family);
-    min-width: 340px;
-    max-width: 480px;
-    max-height: 85vh;
+    width: 420px;
+    height: 550px;
+    min-width: 420px;
+    max-width: 420px;
+    max-height: 550px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -267,8 +269,10 @@
 
 .agp-popup-body {
     padding: 20px;
-    overflow-y: auto;
+    overflow: hidden;
     flex: 1;
+    display: flex;
+    flex-direction: column;
     background: var(--agp-bg);
 }
 
@@ -411,6 +415,13 @@
    AI RESPONSE AREA
    ============================================================================ */
 
+.agp-ai-response-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .agp-ai-response {
     padding: 16px;
     background: var(--agp-bg-tertiary);
@@ -419,7 +430,9 @@
     color: var(--agp-text);
     font-size: 14px;
     line-height: 1.6;
-    margin: 16px 0;
+    margin: 0;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .agp-status-message {
