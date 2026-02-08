@@ -435,7 +435,7 @@
     overflow-y: auto;
     flex: 1;
     scrollbar-width: thin;
-    scrollbar-color: var(--agp-text-muted) var(--agp-border-light);
+    scrollbar-color: var(--agp-text-muted) transparent;
 }
 
 /* Custom Scrollbar - Modern & Clean */
@@ -445,14 +445,14 @@
 }
 
 .agp-ai-response::-webkit-scrollbar-track {
-    background: var(--agp-bg-secondary);
+    background: transparent;
     border-radius: 5px;
 }
 
 .agp-ai-response::-webkit-scrollbar-thumb {
     background: var(--agp-text-muted);
     border-radius: 5px;
-    border: 2px solid var(--agp-bg-secondary);
+    border: 2px solid var(--agp-bg-tertiary);
     /* Creates floating effect */
     background-clip: content-box;
     transition: background 0.2s;
@@ -460,7 +460,7 @@
 
 .agp-ai-response::-webkit-scrollbar-thumb:hover {
     background: var(--agp-text-secondary);
-    border-color: var(--agp-bg-secondary);
+    border-color: var(--agp-bg-tertiary);
     background-clip: content-box;
 }
 
