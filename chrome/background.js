@@ -1,6 +1,4 @@
-/**
- * AI Grammar Pro+ - Background Service Worker v3.1
- */
+
 
 const CONSTANTS = {
     timeout: 30000,
@@ -295,7 +293,7 @@ async function generateAISuggestion(text, style, config) {
                     const errorData = await response.json();
                     errorDetail = errorData.error || errorData.message || '';
                 } catch (e) {
-                    // Ignore
+
                 }
                 throw new Error(`Ollama returned ${response.status}${errorDetail ? ': ' + errorDetail : ''}`);
             }
@@ -371,7 +369,7 @@ async function handleApplyTheme(request, sendResponse) {
                     theme: theme
                 });
             } catch (e) {
-                // Ignore tabs without content script
+
             }
         }
 

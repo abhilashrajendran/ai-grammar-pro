@@ -1,9 +1,6 @@
-/**
- * AI Grammar Pro+ - Content Script v4.1
- * With comprehensive error handling and debugging
- */
 
-// State Management
+
+
 let checkTimer = null;
 let mirrorDiv = null;
 let currentMatches = [];
@@ -20,7 +17,7 @@ const observedTextareas = new WeakSet();
 const DEBOUNCE_DELAY = 1000;
 const MIN_TEXT_LENGTH = 3;
 
-// Extension Health Check
+
 let isExtensionValid = true;
 let hasShownReloadPrompt = false;
 
@@ -40,7 +37,7 @@ function checkExtensionHealth() {
 
 setInterval(checkExtensionHealth, 5000);
 
-// Theme Management
+
 function applyTheme(theme) {
     const root = document.documentElement;
     root.classList.remove('agp-theme-light', 'agp-theme-dark');
@@ -52,11 +49,11 @@ function applyTheme(theme) {
     }
 }
 
-// Settings Management
+
 async function loadSettings() {
     try {
         if (!checkExtensionHealth()) {
-            console.warn('[AGP] Extension invalid, using defaults');
+
             return getDefaultSettings();
         }
 
@@ -64,11 +61,11 @@ async function loadSettings() {
         if (response && response.settings) {
             userSettings = response.settings;
             applyTheme(response.settings.theme || 'auto');
-            console.log('[AGP] Settings loaded');
+
             return response.settings;
         }
     } catch (error) {
-        console.error('[AGP] Load settings failed:', error);
+
     }
 
     return getDefaultSettings();
@@ -92,7 +89,7 @@ loadSettings().then(settings => {
     userSettings = settings;
 });
 
-// Messaging Helper
+
 function sendMessage(message) {
     return new Promise((resolve, reject) => {
         if (!checkExtensionHealth()) {
@@ -104,7 +101,7 @@ function sendMessage(message) {
             chrome.runtime.sendMessage(message, (response) => {
                 if (chrome.runtime.lastError) {
                     const error = chrome.runtime.lastError;
-                    console.error('[AGP] Runtime error:', error);
+
 
                     if (error.message && error.message.includes('Extension context invalidated')) {
                         isExtensionValid = false;
@@ -117,13 +114,13 @@ function sendMessage(message) {
                 }
             });
         } catch (error) {
-            console.error('[AGP] Send message error:', error);
+
             reject(error);
         }
     });
 }
 
-// Textarea Detection
+
 function isTextarea(element) {
     return element &&
         element.tagName === 'TEXTAREA' &&
@@ -162,7 +159,7 @@ function replaceTextRange(textarea, offset, length, replacement) {
     }, 100);
 }
 
-// Floating Button
+
 function createFloatingButton(textarea) {
     if (!textarea || !isTextarea(textarea)) return;
 
@@ -229,7 +226,7 @@ function removeFloatingButton() {
     }
 }
 
-// Mirror Layer
+
 function createMirror(textarea) {
     if (!textarea) return;
     if (mirrorDiv) mirrorDiv.remove();
@@ -267,7 +264,7 @@ function updateMirror(textarea, matches) {
 
     const text = getTextFromTextarea(textarea);
 
-    // Clear current content completely
+
     mirrorDiv.innerHTML = '';
 
     let lastIndex = 0;
@@ -276,19 +273,19 @@ function updateMirror(textarea, matches) {
         const start = match.offset;
         const end = match.offset + match.length;
 
-        // 1. Append text occurring BEFORE the error
+
         const textBefore = text.slice(lastIndex, start);
         if (textBefore) {
             mirrorDiv.appendChild(document.createTextNode(textBefore));
         }
 
-        // 2. Create and append the interactive error span
+
         const errorSpan = document.createElement('span');
         errorSpan.className = 'agp-error-highlight';
         errorSpan.setAttribute('data-match-index', idx);
         errorSpan.textContent = text.slice(start, end);
 
-        // The event listener is preserved because we are appending the Element, not a string
+
         errorSpan.addEventListener('click', (e) => {
             e.stopPropagation(); // Stop click from focusing the textarea below immediately
             showGrammarPopup(match, textarea);
@@ -299,7 +296,7 @@ function updateMirror(textarea, matches) {
         lastIndex = end;
     });
 
-    // 3. Append any remaining text after the last error
+
     const textAfter = text.slice(lastIndex);
     if (textAfter) {
         mirrorDiv.appendChild(document.createTextNode(textAfter));
@@ -313,7 +310,7 @@ function clearMirror() {
     }
 }
 
-// Grammar Checking
+
 async function checkText(textarea) {
     if (!textarea || !isTextarea(textarea) || isCheckingInProgress) return;
 
@@ -339,10 +336,10 @@ async function checkText(textarea) {
             grammarOnly: true
         });
 
-        console.log('[AGP] Check response:', response);
+
 
         if (response && response.error) {
-            console.warn('[AGP] Error:', response.error);
+
             currentMatches = [];
             clearMirror();
         } else if (response) {
@@ -352,7 +349,7 @@ async function checkText(textarea) {
             updateFloatingButton(currentMatches.length);
         }
     } catch (error) {
-        console.error('[AGP] Check failed:', error);
+
         currentMatches = [];
         clearMirror();
         updateFloatingButton(0);
@@ -377,40 +374,34 @@ async function performCheck(textarea) {
         return;
     }
 
-    // Store original text for the "Original" button
+
     originalText = text;
-    // Reset to original style when opening popup
+
     currentSelectedStyle = 'original';
     currentAIResponse = null;
 
     setButtonLoading(true);
 
     try {
-        console.log('[AGP] Performing check...', {
-            textLength: text.length,
-            style: currentSelectedStyle
-        });
+
 
         const response = await sendMessage({
             action: 'checkText',
             text: text,
             style: currentSelectedStyle,
-            grammarOnly: true  // Only check grammar initially, no AI processing
+            grammarOnly: true
         });
 
-        console.log('[AGP] Response:', response);
+
 
         if (response && response.error) {
-            console.error('[AGP] Error:', response.error);
+
             showToast(response.error, 'error');
         } else if (response) {
             currentMatches = response.grammar || [];
             currentAIResponse = response.ai || null;
 
-            console.log('[AGP] Results:', {
-                grammar: currentMatches.length,
-                ai: !!currentAIResponse
-            });
+
 
             createMirror(textarea);
             updateMirror(textarea, currentMatches);
@@ -420,7 +411,7 @@ async function performCheck(textarea) {
             showToast('No response from background', 'error');
         }
     } catch (error) {
-        console.error('[AGP] Check failed:', error);
+
 
         if (error.message && error.message.includes('refresh')) {
             showPageReloadPrompt();
@@ -432,7 +423,7 @@ async function performCheck(textarea) {
     }
 }
 
-// Grammar Popup
+
 function showGrammarPopup(match, textarea) {
     closeAllPopups();
 
@@ -490,7 +481,7 @@ function showGrammarPopup(match, textarea) {
     makeDraggable(popup, headerDiv);
 }
 
-// AI Popup
+
 async function createAIPopup(textarea) {
     closeAllPopups();
 
@@ -512,7 +503,7 @@ async function createAIPopup(textarea) {
         bodyDiv.appendChild(statsDiv);
     }
 
-    // Wait for async button loading to complete before appending popup
+
     await loadAndDisplayStyleButtons(bodyDiv, textarea);
 
     popup.appendChild(headerDiv);
@@ -545,8 +536,7 @@ async function createAIPopup(textarea) {
     popup.appendChild(actionsDiv);
 
     popup.classList.add('agp-centered');
-    // Centering is now handled by .agp-centered class in CSS
-    // to avoid conflicts with entrance animation transforms
+
 
     document.body.appendChild(popup);
     currentPopup = popup;
@@ -562,7 +552,7 @@ async function loadAndDisplayStyleButtons(container, textarea) {
     const styleGrid = document.createElement('div');
     styleGrid.className = 'agp-style-grid';
 
-    // Always add "Original" button first (hardcoded, not from settings)
+
     const originalBtn = document.createElement('button');
     originalBtn.className = 'agp-style-btn';
     originalBtn.setAttribute('data-style-key', 'original');
@@ -573,7 +563,7 @@ async function loadAndDisplayStyleButtons(container, textarea) {
     originalBtn.onclick = () => switchStyle('original', styleGrid, textarea);
     styleGrid.appendChild(originalBtn);
 
-    // Load AI rephrase styles from settings
+
     try {
         const response = await sendMessage({ action: 'getStylePrompts' });
         const styles = response.styles || {};
@@ -593,7 +583,7 @@ async function loadAndDisplayStyleButtons(container, textarea) {
             styleGrid.appendChild(btn);
         });
     } catch (error) {
-        console.error('[AGP] Load styles failed:', error);
+
     }
 
     stylesDiv.appendChild(styleGrid);
@@ -606,7 +596,7 @@ async function loadAndDisplayStyleButtons(container, textarea) {
     if (currentAIResponse) {
         responseContainer.innerHTML = `<div class="agp-ai-response">${escapeHtml(currentAIResponse)}</div>`;
     } else if (originalText) {
-        // Show original text when no AI response is available
+
         responseContainer.innerHTML = `<div class="agp-ai-response">${escapeHtml(originalText)}</div>`;
     } else {
         responseContainer.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">💭</span>Select a style to rephrase</div>';
@@ -626,7 +616,7 @@ async function switchStyle(styleKey, styleGrid, textarea) {
     const container = document.getElementById('agp-ai-response-container');
     if (!container) return;
 
-    // Handle "original" style - just show original text without API call
+
     if (styleKey === 'original') {
         currentAIResponse = null;
         container.innerHTML = `<div class="agp-ai-response">${escapeHtml(originalText)}</div>`;
@@ -638,7 +628,7 @@ async function switchStyle(styleKey, styleGrid, textarea) {
     const text = getTextFromTextarea(textarea);
 
     try {
-        console.log('[AGP] Switching to:', styleKey);
+
 
         const response = await sendMessage({
             action: 'checkText',
@@ -647,24 +637,24 @@ async function switchStyle(styleKey, styleGrid, textarea) {
             grammarOnly: false
         });
 
-        console.log('[AGP] Switch response:', response);
+
 
         if (response && response.ai) {
             currentAIResponse = response.ai;
             container.innerHTML = `<div class="agp-ai-response">${escapeHtml(response.ai)}</div>`;
         } else if (response && response.error) {
-            console.error('[AGP] Error:', response.error);
+
             container.innerHTML = `<div class="agp-status-message"><span class="agp-status-icon">❌</span>${escapeHtml(response.error)}</div>`;
         } else {
             container.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">❌</span>Failed to rephrase</div>';
         }
     } catch (error) {
-        console.error('[AGP] Switch failed:', error);
+
         container.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">❌</span>Error occurred</div>';
     }
 }
 
-// Utilities
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -775,7 +765,7 @@ function makeDraggable(element, handle) {
     });
 }
 
-// Event Listeners
+
 document.addEventListener('input', (e) => {
     if (!isTextarea(e.target)) return;
     currentTarget = e.target;
@@ -851,7 +841,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Message Listener
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'contextMenuAction') {
         if (currentTarget && isTextarea(currentTarget)) {
@@ -869,7 +859,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-// Dynamic Element Detection
+
 const mutationObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
@@ -902,5 +892,4 @@ window.addEventListener('load', () => {
     });
 });
 
-console.log('[AGP] AI Grammar Pro+ v4.1 loaded');
-console.log('[AGP] Services: http://192.168.6.2:8010 & http://192.168.6.2:30068');
+

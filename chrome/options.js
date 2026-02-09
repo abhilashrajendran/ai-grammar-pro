@@ -1,6 +1,4 @@
-/**
- * AI Grammar Pro+ - Options Page Script v3.1
- */
+
 
 const STYLE_INFO = {
     professional: { icon: '💼', label: 'Professional' },
@@ -116,10 +114,9 @@ async function saveSection(section) {
     const saveButton = document.getElementById(`save-${section}`);
     const successMessage = document.getElementById(`success-${section}`);
 
-    // Create a copy of current settings to modify
     const newSettings = { ...currentSettings };
 
-    // Update only the fields for the specific section
+
     if (section === 'general') {
         newSettings.autoCheck = document.getElementById('auto-check-toggle').classList.contains('active');
         newSettings.checkDelay = parseInt(document.getElementById('check-delay').value);
@@ -158,7 +155,7 @@ async function saveSection(section) {
         if (response && response.success) {
             currentSettings = newSettings;
 
-            // Apply theme immediately if changed
+
             if (section === 'general') {
                 await chrome.runtime.sendMessage({
                     action: 'applyTheme',
@@ -166,11 +163,11 @@ async function saveSection(section) {
                 });
             }
 
-            // Show inline success message
+
             successMessage.style.display = 'block';
-            // Reset animation
+
             successMessage.style.animation = 'none';
-            successMessage.offsetHeight; /* trigger reflow */
+            successMessage.offsetHeight;
             successMessage.style.animation = 'fadeOut 2s forwards';
 
             saveButton.textContent = originalText;

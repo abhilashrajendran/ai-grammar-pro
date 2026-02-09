@@ -1,30 +1,28 @@
-/**
- * AI Grammar Pro+ - Popup Script v3.1
- */
+
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('settings-btn').addEventListener('click', () => {
         chrome.runtime.openOptionsPage();
     });
-    
+
     document.getElementById('help-btn').addEventListener('click', () => {
         chrome.runtime.openOptionsPage();
     });
-    
+
     document.getElementById('options-link').addEventListener('click', (e) => {
         e.preventDefault();
         chrome.runtime.openOptionsPage();
     });
-    
+
     checkStatus();
 });
 
 async function checkStatus() {
     const statusEl = document.getElementById('status');
-    
+
     try {
         const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
-        
+
         if (response && response.settings) {
             statusEl.textContent = '✓ Ready';
             statusEl.className = 'status-value ready';
