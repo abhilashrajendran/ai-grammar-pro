@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Grammar Pro+</title>
     <link rel="stylesheet" href="popup-styles.css">
 </head>
+
 <body>
     <div class="header">
         <div class="logo">✨</div>
@@ -14,16 +16,15 @@
             <p>Smart writing assistant</p>
         </div>
     </div>
-    
+
     <div class="content">
         <div class="status-card">
-            <div class="status-icon">✓</div>
             <div class="status-info">
-                <span class="status-label">Status</span>
-                <span class="status-value" id="status">Ready</span>
+                <span class="label">Status</span>
+                <span class="status-value" id="status"></span>
             </div>
         </div>
-        
+
         <div class="actions">
             <button class="action-btn" id="settings-btn" title="Settings">
                 <span class="icon">⚙️</span>
@@ -34,24 +35,25 @@
                 <span class="label">Help</span>
             </button>
         </div>
-        
+
         <div class="shortcuts">
             <div class="shortcut-title">Shortcuts</div>
             <div class="shortcut-item">
-                <kbd>⌃⇧G</kbd>
+                <kbd>Ctrl+Shift+G</kbd>
                 <span>Check</span>
             </div>
             <div class="shortcut-item">
-                <kbd>⌃⇧R</kbd>
+                <kbd>Ctrl+Shift+R</kbd>
                 <span>Rephrase</span>
             </div>
         </div>
     </div>
-    
+
     <div class="footer">
-        v3.0 · <a href="#" id="options-link">Options</a>
+        Version 4.0.0 <a href="#" id="options-link">Options</a>
     </div>
-    
+
     <script src="popup.js"></script>
 </body>
+
 </html>

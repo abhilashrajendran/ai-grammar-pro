@@ -9,6 +9,7 @@
     --text-main: #2d3748;
     --text-sub: #718096;
     --success: #2a9d8f;
+    --success-dark: #217f70;
     --warning: #e9c46a;
     --danger: #e63946;
 
@@ -95,10 +96,17 @@ body {
     color: var(--text-main);
     margin-bottom: 20px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: 10px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
+}
+
+.title-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .section-title .icon {
@@ -363,5 +371,62 @@ kbd {
 
     .toggle {
         align-self: flex-start;
+    }
+}
+
+.section-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-save-sm {
+    padding: 8px 16px;
+    background: var(--success);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-save-sm:hover {
+    background: var(--success-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-save-sm:active {
+    transform: translateY(0);
+}
+
+.btn-save-sm:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.success-msg-inline {
+    font-size: 13px;
+    color: var(--success);
+    font-weight: 600;
+    display: none;
+    animation: fadeOut 2s forwards;
+}
+
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+    }
+
+    70% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
     }
 }

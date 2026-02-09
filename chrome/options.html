@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Grammar Pro+ Settings</title>
     <link rel="stylesheet" href="options-styles.css">
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -15,13 +17,19 @@
                 <p>Configure your writing assistant</p>
             </div>
         </div>
-        
+
         <div class="card">
             <div class="section-title">
-                <span class="icon">⚡</span>
-                General
+                <div class="title-content">
+                    <span class="icon">⚡</span>
+                    General
+                </div>
+                <div class="section-actions">
+                    <span class="success-msg-inline" id="success-general">✓ Saved!</span>
+                    <button class="btn-save-sm" id="save-general">Save</button>
+                </div>
             </div>
-            
+
             <div class="setting">
                 <div class="setting-info">
                     <label>Auto Check</label>
@@ -29,7 +37,7 @@
                 </div>
                 <div class="toggle active" id="auto-check-toggle"></div>
             </div>
-            
+
             <div class="setting">
                 <div class="setting-info">
                     <label>Theme</label>
@@ -41,7 +49,7 @@
                     <option value="dark">Dark</option>
                 </select>
             </div>
-            
+
             <div class="setting">
                 <div class="setting-info">
                     <label>Check Delay</label>
@@ -49,7 +57,7 @@
                 </div>
                 <input type="number" id="check-delay" class="input-num" min="500" max="5000" step="100" value="1000">
             </div>
-            
+
             <div class="setting">
                 <div class="setting-info">
                     <label>Default Style</label>
@@ -66,7 +74,7 @@
                     <option value="expand">📈 Expand</option>
                 </select>
             </div>
-            
+
             <div class="setting">
                 <div class="setting-info">
                     <label>Show Statistics</label>
@@ -74,7 +82,7 @@
                 </div>
                 <div class="toggle active" id="show-stats-toggle"></div>
             </div>
-            
+
             <div class="setting">
                 <div class="setting-info">
                     <label>Keyboard Shortcuts</label>
@@ -86,15 +94,21 @@
 
         <div class="card">
             <div class="section-title">
-                <span class="icon">🔗</span>
-                Services
+                <div class="title-content">
+                    <span class="icon">🔗</span>
+                    Services
+                </div>
+                <div class="section-actions">
+                    <span class="success-msg-inline" id="success-services">✓ Saved!</span>
+                    <button class="btn-save-sm" id="save-services">Save</button>
+                </div>
             </div>
-            
+
             <div class="alert">
                 <span class="alert-icon">⚠️</span>
                 Ensure services are running before use
             </div>
-            
+
             <div class="setting">
                 <div class="setting-info">
                     <label>LanguageTool URL</label>
@@ -108,7 +122,8 @@
                     <label>Ollama URL</label>
                     <span class="desc">AI generation endpoint</span>
                 </div>
-                <input type="text" id="ollama-url" class="input-text" placeholder="http://192.168.6.2:30068/api/generate">
+                <input type="text" id="ollama-url" class="input-text"
+                    placeholder="http://192.168.6.2:30068/api/generate">
             </div>
 
             <div class="setting">
@@ -122,22 +137,23 @@
 
         <div class="card">
             <div class="section-title">
-                <span class="icon">🎨</span>
-                Rephrase Styles
+                <div class="title-content">
+                    <span class="icon">🎨</span>
+                    Rephrase Styles
+                </div>
+                <div class="section-actions">
+                    <span class="success-msg-inline" id="success-styles">✓ Saved!</span>
+                    <button class="btn-save-sm" id="save-styles">Save</button>
+                </div>
             </div>
-            
+
             <div class="style-grid" id="style-checkboxes">
                 <!-- Populated by JavaScript -->
             </div>
         </div>
-        
-        <div class="card">
-            <button class="btn-save" id="save-button">💾 Save Settings</button>
-            <div class="success-msg" id="success-message">
-                ✓ Saved successfully!
-            </div>
-        </div>
-        
+
+
+
         <div class="card info">
             <div class="info-section">
                 <div class="info-title">⌨️ Shortcuts</div>
@@ -147,7 +163,7 @@
                     <div><kbd>Esc</kbd> Close popups</div>
                 </div>
             </div>
-            
+
             <div class="info-section">
                 <div class="info-title">ℹ️ About</div>
                 <div class="info-text">
@@ -157,7 +173,8 @@
             </div>
         </div>
     </div>
-    
+
     <script src="options.js"></script>
 </body>
+
 </html>
