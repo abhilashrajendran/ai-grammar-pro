@@ -81,8 +81,7 @@ function getDefaultSettings() {
         ollamaModel: 'llama3.2:1b',
         autoCheck: true,
         checkDelay: 1000,
-        enabledStyles: ['original', 'professional', 'casual', 'short', 'academic', 'creative', 'technical', 'simple', 'expand'],
-        defaultStyle: 'professional',
+        enabledStyles: ['professional', 'casual', 'short', 'academic', 'creative', 'technical', 'simple', 'expand'],
         theme: 'auto',
         showStatistics: true,
         enableShortcuts: true
@@ -91,7 +90,6 @@ function getDefaultSettings() {
 
 loadSettings().then(settings => {
     userSettings = settings;
-    currentSelectedStyle = settings.defaultStyle;
 });
 
 // Messaging Helper
@@ -563,6 +561,18 @@ async function loadAndDisplayStyleButtons(container, textarea) {
     const styleGrid = document.createElement('div');
     styleGrid.className = 'agp-style-grid';
 
+    // Always add "Original" button first (hardcoded, not from settings)
+    const originalBtn = document.createElement('button');
+    originalBtn.className = 'agp-style-btn';
+    originalBtn.setAttribute('data-style-key', 'original');
+    if (currentSelectedStyle === 'original') {
+        originalBtn.classList.add('active');
+    }
+    originalBtn.innerHTML = `<span class="agp-style-icon">📄</span>Original`;
+    originalBtn.onclick = () => switchStyle('original', styleGrid, textarea);
+    styleGrid.appendChild(originalBtn);
+
+    // Load AI rephrase styles from settings
     try {
         const response = await sendMessage({ action: 'getStylePrompts' });
         const styles = response.styles || {};

@@ -3,7 +3,6 @@
  */
 
 const STYLE_INFO = {
-    original: { icon: '📄', label: 'Original' },
     professional: { icon: '💼', label: 'Professional' },
     casual: { icon: '😊', label: 'Casual' },
     short: { icon: '✂️', label: 'Concise' },

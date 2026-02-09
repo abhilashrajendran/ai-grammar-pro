@@ -24,11 +24,6 @@ const DEFAULT_SETTINGS = {
 };
 
 const STYLE_PROMPTS = {
-    original: {
-        prompt: '',
-        icon: '📄',
-        label: 'Original'
-    },
     professional: {
         prompt: 'Rewrite the following text for a corporate audience. Use an active voice, avoid slang, and maintain a respectful, authoritative tone. STRICT INSTRUCTION: Output ONLY the rewritten text. Do not include introductions, explanations, or quotes.',
         icon: '💼',
