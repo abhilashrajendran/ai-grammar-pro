@@ -8,8 +8,8 @@ const CONSTANTS = {
 };
 
 const DEFAULT_SETTINGS = {
-    languageToolUrl: 'http://192.168.6.2:8010/v2/check',
-    ollamaUrl: 'http://192.168.6.2:30068/api/generate',
+    languageToolUrl: 'http://localhost:8010/v2/check',
+    ollamaUrl: 'http://localhost:11434/api/generate',
     ollamaModel: 'llama3.2:1b',
     autoCheck: true,
     checkDelay: 1000,

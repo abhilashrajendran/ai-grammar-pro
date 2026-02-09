@@ -15,25 +15,7 @@ services:
       - ./lt_data:/ngrams
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/v2/languages"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # Ollama - AI/LLM service
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "30068:11434"
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-    volumes:
-      - ./ollama_data:/root/.ollama
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/v2/languages" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -41,4 +23,3 @@ services:
 
 volumes:
   lt_data:
-  ollama_data:

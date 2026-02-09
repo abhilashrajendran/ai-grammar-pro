@@ -9,8 +9,8 @@
     "contextMenus"
   ],
   "host_permissions": [
-    "http://192.168.6.2:8010/*",
-    "http://192.168.6.2:30068/*"
+    "http://localhost:8010/*",
+    "http://localhost:11434/*"
   ],
   "background": {
     "service_worker": "background.js"

@@ -19,21 +19,17 @@ Since the AI models run locally, your hardware capabilities will affect performa
 -   **Brave**: Recent versions.
 -   *Note: Other Chromium-based browsers may work but are not officially tested.*
 
-### 2. Docker & Docker Compose
+### 2. Ollama (AI Engine)
+-   **Version**: Latest available from [ollama.com](https://ollama.com).
+-   **Function**: Runs the local Large Language Model (Llama 3.2 1B).
+-   **Installation**: Must be installed directly on the host OS (Windows/Mac/Linux).
+
+### 3. Docker & Docker Compose
 -   **Docker Engine**: Version 20.10.0 or higher.
 -   **Docker Compose**: Version 1.29.0 or higher (often included with Docker Desktop).
--   *Why?* Docker is used to containerize the LanguageTool and Ollama servers, ensuring they run consistently on any machine without complex dependency installation.
+-   *Why?* Docker is used to containerize the LanguageTool server (Java based), ensuring it runs consistently without complex Java dependencies.
 
-### 3. Local Network Access
--   The extension communicates with local ports:
-    -   `8010` (LanguageTool)
-    -   `30068` (Ollama)
--   Ensure your firewall allows connections to these ports on `localhost` or your Docker network IP.
+## Dependencies
 
-## Dependencies (Included via Docker)
-
-These are installed automatically inside the Docker containers:
-
--   **LanguageTool**: Open-source grammar checker (Java-based).
--   **Ollama**: Local LLM runner.
--   **Llama 3.2 1B**: The specific Large Language Model optimized for speed and rephrasing tasks.
+-   **LanguageTool**: Open-source grammar checker (via Docker).
+-   **Llama 3.2 1B**: The specific Large Language Model optimized for speed and rephrasing tasks (via Ollama).

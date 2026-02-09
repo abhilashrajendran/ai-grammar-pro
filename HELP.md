@@ -39,11 +39,12 @@ AI Grammar Pro+ assists you in two main ways:
     4.  Check if the port `8010` is conflicting with another application.
 
 ### "Ollama error: Model may not be available"
--   **Cause**: The AI model `llama3.2:1b` has not been downloaded to your local Ollama instance.
+-   **Cause**: The AI model `llama3.2:1b` has not been downloaded to your local Ollama instance, or Ollama is not running.
 -   **Fix**:
-    1.  Open your terminal.
-    2.  Run: `docker exec -it ollama ollama pull llama3.2:1b`
-    3.  Wait for the download to complete.
+    1.  Ensure Ollama is running (check your system tray or run `ollama serve`).
+    2.  Open your terminal.
+    3.  Run: `ollama pull llama3.2:1b`
+    4.  Wait for the download to complete.
 
 ### Extension Icon is Gray / Not Working
 -   **Cause**: The extension might need to be reloaded/updated.
@@ -53,10 +54,12 @@ AI Grammar Pro+ assists you in two main ways:
     3.  Click the reload (circular arrow) icon.
 
 ### Connection Error / Network Issues
--   **Cause**: The extension is trying to connect to a specific IP (`192.168.6.2`) that might not match your machine's setup.
+-   **Cause**: The extension is not pointing to the correct local ports.
 -   **Fix**:
     1.  Right-click the extension icon > **Options**.
-    2.  Change the URLs to `http://localhost:8010/v2/check` and `http://localhost:30068/api/generate` if you are running Docker on the same machine.
+    2.  Ensure URLs are correct:
+        -   LanguageTool: `http://localhost:8010/v2/check`
+        -   Ollama: `http://localhost:11434/api/generate`
     3.  Click **Save Settings**.
     4.  Click **Test Connection** to verify.
 
@@ -65,10 +68,10 @@ AI Grammar Pro+ assists you in two main ways:
 ## FAQ
 
 **Q: Does this work offline?**
-A: Yes! Once the Docker containers are running and the model is pulled, you can disconnect from the internet and it will still work.
+A: Yes! Once Docker is running and the model is pulled in Ollama, you can disconnect from the internet and it will still work.
 
 **Q: Is my data sent to the cloud?**
-A: No. All processing involves only your browser and your local Docker containers.
+A: No. All processing involves only your browser and your local services.
 
 **Q: Can I use a different AI model?**
-A: Yes. You can change the model name in the **Options** page (e.g., `llama3`, `mistral`), but you must ensure you have pulled that model in Ollama (`docker exec -it ollama ollama pull <model_name>`).
+A: Yes. You can change the model name in the **Options** page (e.g., `llama3`, `mistral`), but you must ensure you have pulled that model in Ollama (`ollama pull <model_name>`).

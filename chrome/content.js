@@ -73,8 +73,8 @@ async function loadSettings() {
 
 function getDefaultSettings() {
     return {
-        languageToolUrl: 'http://192.168.6.2:8010/v2/check',
-        ollamaUrl: 'http://192.168.6.2:30068/api/generate',
+        languageToolUrl: 'http://localhost:8010/v2/check',
+        ollamaUrl: 'http://localhost:11434/api/generate',
         ollamaModel: 'llama3.2:1b',
         autoCheck: true,
         checkDelay: 1000,
@@ -416,7 +416,7 @@ async function performCheck(textarea) {
         if (error.message && error.message.includes('refresh')) {
             showPageReloadPrompt();
         } else {
-            showToast('Check failed. Verify services are running:\n• http://192.168.6.2:8010\n• http://192.168.6.2:30068', 'error');
+            showToast('Check failed. Verify services are running:\n• http://localhost:8010\n• http://localhost:11434', 'error');
         }
     } finally {
         setButtonLoading(false);
