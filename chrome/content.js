@@ -11,7 +11,8 @@ let currentTarget = null;
 let floatingButton = null;
 let currentPopup = null;
 let currentAIResponse = null;
-let currentSelectedStyle = 'professional';
+let currentSelectedStyle = 'original';
+let originalText = '';
 let userSettings = null;
 let lastCheckedText = '';
 let isCheckingInProgress = false;
@@ -80,7 +81,7 @@ function getDefaultSettings() {
         ollamaModel: 'llama3.2:1b',
         autoCheck: true,
         checkDelay: 1000,
-        enabledStyles: ['professional', 'casual', 'short', 'academic', 'creative', 'technical', 'simple', 'expand'],
+        enabledStyles: ['original', 'professional', 'casual', 'short', 'academic', 'creative', 'technical', 'simple', 'expand'],
         defaultStyle: 'professional',
         theme: 'auto',
         showStatistics: true,
@@ -378,6 +379,12 @@ async function performCheck(textarea) {
         return;
     }
 
+    // Store original text for the "Original" button
+    originalText = text;
+    // Reset to original style when opening popup
+    currentSelectedStyle = 'original';
+    currentAIResponse = null;
+
     setButtonLoading(true);
 
     try {
@@ -390,7 +397,7 @@ async function performCheck(textarea) {
             action: 'checkText',
             text: text,
             style: currentSelectedStyle,
-            grammarOnly: false
+            grammarOnly: true  // Only check grammar initially, no AI processing
         });
 
         console.log('[AGP] Response:', response);
@@ -519,15 +526,17 @@ function createAIPopup(textarea) {
     `;
 
     actionsDiv.querySelector('#copy-btn').onclick = async () => {
-        if (currentAIResponse) {
-            await copyToClipboard(currentAIResponse);
+        const textToCopy = currentAIResponse || originalText;
+        if (textToCopy) {
+            await copyToClipboard(textToCopy);
             showToast('Copied', 'success');
         }
     };
 
     actionsDiv.querySelector('#apply-btn').onclick = () => {
-        if (currentAIResponse) {
-            setTextInTextarea(textarea, currentAIResponse);
+        const textToApply = currentAIResponse || originalText;
+        if (textToApply) {
+            setTextInTextarea(textarea, textToApply);
             popup.remove();
             showToast('Applied', 'success');
         }
@@ -585,6 +594,9 @@ async function loadAndDisplayStyleButtons(container, textarea) {
 
     if (currentAIResponse) {
         responseContainer.innerHTML = `<div class="agp-ai-response">${escapeHtml(currentAIResponse)}</div>`;
+    } else if (originalText) {
+        // Show original text when no AI response is available
+        responseContainer.innerHTML = `<div class="agp-ai-response">${escapeHtml(originalText)}</div>`;
     } else {
         responseContainer.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">💭</span>Select a style to rephrase</div>';
     }
@@ -602,6 +614,13 @@ async function switchStyle(styleKey, styleGrid, textarea) {
 
     const container = document.getElementById('agp-ai-response-container');
     if (!container) return;
+
+    // Handle "original" style - just show original text without API call
+    if (styleKey === 'original') {
+        currentAIResponse = null;
+        container.innerHTML = `<div class="agp-ai-response">${escapeHtml(originalText)}</div>`;
+        return;
+    }
 
     container.innerHTML = '<div class="agp-status-message"><span class="agp-status-icon">⏳</span>Rephrasing...</div>';
 

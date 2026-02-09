@@ -3,6 +3,7 @@
  */
 
 const STYLE_INFO = {
+    original: { icon: '📄', label: 'Original' },
     professional: { icon: '💼', label: 'Professional' },
     casual: { icon: '😊', label: 'Casual' },
     short: { icon: '✂️', label: 'Concise' },
@@ -43,7 +44,6 @@ function applySettingsToUI(settings) {
     }
 
     document.getElementById('check-delay').value = settings.checkDelay || 1000;
-    document.getElementById('default-style').value = settings.defaultStyle || 'professional';
     document.getElementById('theme-select').value = settings.theme || 'auto';
 
     const showStatsToggle = document.getElementById('show-stats-toggle');
@@ -124,7 +124,6 @@ async function saveSection(section) {
     if (section === 'general') {
         newSettings.autoCheck = document.getElementById('auto-check-toggle').classList.contains('active');
         newSettings.checkDelay = parseInt(document.getElementById('check-delay').value);
-        newSettings.defaultStyle = document.getElementById('default-style').value;
         newSettings.theme = document.getElementById('theme-select').value;
         newSettings.showStatistics = document.getElementById('show-stats-toggle').classList.contains('active');
         newSettings.enableShortcuts = document.getElementById('shortcuts-toggle').classList.contains('active');
