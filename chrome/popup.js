@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('help-btn').addEventListener('click', () => {
-        chrome.runtime.openOptionsPage();
+        chrome.tabs.create({ url: 'help.html' });
     });
 
     document.getElementById('options-link').addEventListener('click', (e) => {

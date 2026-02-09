@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Grammar Pro+ Help</title>
+    <link rel="stylesheet" href="options-styles.css">
+    <style>
+        .help-content h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.25rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .help-content h3 {
+            color: #34495e;
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .help-content p,
+        .help-content li {
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .help-content ul,
+        .help-content ol {
+            padding-left: 1.5rem;
+        }
+
+        .help-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .help-content code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #e74c3c;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .back-btn:hover {
+            color: #2c3e50;
+        }
+
+        .faq-item {
+            margin-bottom: 1rem;
+        }
+
+        .faq-q {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .faq-a {
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="options.html" class="back-btn">← Back to Settings</a>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                <div class="logo">❓</div>
+                <div>
+                    <h1>User Guide & Help</h1>
+                    <p>How to use AI Grammar Pro+</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card help-content">
+            <h2>Functionality Overview</h2>
+            <p>AI Grammar Pro+ assists you in two main ways:</p>
+            <ol>
+                <li><strong>Grammar Checking</strong>: Automatically scans your text and underlines errors in red. Hover
+                    over an error to see suggested corrections.</li>
+                <li><strong>AI Rephrasing</strong>: Allows you to select text and rewrite it in a specific style using
+                    local AI.</li>
+            </ol>
+        </div>
+
+        <div class="card help-content">
+            <h2>How to Use</h2>
+
+            <h3>Basic Grammar Check</h3>
+            <ol>
+                <li>Navigate to any website with a text input field (e.g., email client, social media, forums).</li>
+                <li>Type your text.</li>
+                <li>The extension will automatically check for spelling and grammar errors.</li>
+                <li><strong>Click</strong> on any underlined text to accept the suggestion.</li>
+            </ol>
+
+            <h3>AI Rephrasing</h3>
+            <ol>
+                <li><strong>Select</strong> a sentence or paragraph you want to rewrite.</li>
+                <li><strong>Right-click</strong> the selection to open the context menu.</li>
+                <li>Hover over <strong>Rephrase: [Style]</strong> (e.g., Professional, Casual) or choose <strong>Check
+                        Grammar & Rephrase</strong>.</li>
+                <li>The AI will generate a suggestion. A popup or overlay will appear allowing you to replace the text.
+                </li>
+            </ol>
+
+            <h3>Keyboard Shortcuts</h3>
+            <ul>
+                <li><code>Ctrl+Shift+G</code> (or <code>Command+Shift+G</code> on Mac): Check grammar in the currently
+                    focused text area.</li>
+                <li><code>Ctrl+Shift+R</code> (or <code>Command+Shift+R</code> on Mac): Quick rephrase with the default
+                    style.</li>
+            </ul>
+        </div>
+
+        <div class="card help-content">
+            <h2>Troubleshooting</h2>
+
+            <h3>"LanguageTool service is not responding"</h3>
+            <ul>
+                <li><strong>Cause</strong>: The LanguageTool server container is not running or not reachable.</li>
+                <li><strong>Fix</strong>:
+                    <ol>
+                        <li>Open your terminal/command prompt.</li>
+                        <li>Run <code>docker ps</code> to see if <code>languagetool</code> container is active.</li>
+                        <li>If not, go to the <code>docker</code> folder and run <code>docker-compose up -d</code>.</li>
+                        <li>Check if the port <code>8010</code> is conflicting with another application.</li>
+                    </ol>
+                </li>
+            </ul>
+
+            <h3>"Ollama error: Model may not be available"</h3>
+            <ul>
+                <li><strong>Cause</strong>: The AI model <code>llama3.2:1b</code> has not been downloaded to your local
+                    Ollama instance, or Ollama is not running.</li>
+                <li><strong>Fix</strong>:
+                    <ol>
+                        <li>Ensure Ollama is running (check your system tray or run <code>ollama serve</code>).</li>
+                        <li>Open your terminal.</li>
+                        <li>Run: <code>ollama pull llama3.2:1b</code></li>
+                        <li>Wait for the download to complete.</li>
+                    </ol>
+                </li>
+            </ul>
+
+            <h3>Connection Error / Network Issues</h3>
+            <ul>
+                <li><strong>Cause</strong>: The extension is not pointing to the correct local ports.</li>
+                <li><strong>Fix</strong>:
+                    <ol>
+                        <li>Right-click the extension icon > <strong>Options</strong>.</li>
+                        <li>Ensure URLs are correct:
+                            <ul>
+                                <li>LanguageTool: <code>http://localhost:8010/v2/check</code></li>
+                                <li>Ollama: <code>http://localhost:11434/api/generate</code></li>
+                            </ul>
+                        </li>
+                        <li>Click <strong>Save Settings</strong>.</li>
+                        <li>Click <strong>Test Connection</strong> to verify.</li>
+                    </ol>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card help-content">
+            <h2>FAQ</h2>
+
+            <div class="faq-item">
+                <div class="faq-q">Q: Does this work offline?</div>
+                <div class="faq-a">A: Yes! Once Docker is running and the model is pulled in Ollama, you can disconnect
+                    from the internet and it will still work.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q">Q: Is my data sent to the cloud?</div>
+                <div class="faq-a">A: No. All processing involves only your browser and your local services.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q">Q: Can I use a different AI model?</div>
+                <div class="faq-a">A: Yes. You can change the model name in the <strong>Options</strong> page (e.g.,
+                    <code>llama3</code>, <code>mistral</code>), but you must ensure you have pulled that model in Ollama
+                    (<code>ollama pull <model_name></code>).</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
