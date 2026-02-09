@@ -415,7 +415,7 @@ async function performCheck(textarea) {
             createMirror(textarea);
             updateMirror(textarea, currentMatches);
             updateFloatingButton(currentMatches.length);
-            createAIPopup(textarea);
+            await createAIPopup(textarea);
         } else {
             showToast('No response from background', 'error');
         }
@@ -479,19 +479,19 @@ function showGrammarPopup(match, textarea) {
     popup.appendChild(headerDiv);
     popup.appendChild(bodyDiv);
 
-    document.body.appendChild(popup);
-    currentPopup = popup;
-
     const rect = textarea.getBoundingClientRect();
     popup.style.position = 'fixed';
     popup.style.top = `${rect.top + window.scrollY - 10}px`;
     popup.style.left = `${rect.left + window.scrollX + 20}px`;
 
+    document.body.appendChild(popup);
+    currentPopup = popup;
+
     makeDraggable(popup, headerDiv);
 }
 
 // AI Popup
-function createAIPopup(textarea) {
+async function createAIPopup(textarea) {
     closeAllPopups();
 
     const popup = document.createElement('div');
@@ -511,7 +511,9 @@ function createAIPopup(textarea) {
         statsDiv.textContent = `Found ${currentMatches.length} grammar issue${currentMatches.length !== 1 ? 's' : ''}. Click underlined text for suggestions.`;
         bodyDiv.appendChild(statsDiv);
     }
-    loadAndDisplayStyleButtons(bodyDiv, textarea);
+
+    // Wait for async button loading to complete before appending popup
+    await loadAndDisplayStyleButtons(bodyDiv, textarea);
 
     popup.appendChild(headerDiv);
     popup.appendChild(bodyDiv);
@@ -542,13 +544,13 @@ function createAIPopup(textarea) {
 
     popup.appendChild(actionsDiv);
 
-    document.body.appendChild(popup);
-    currentPopup = popup;
-
     popup.style.position = 'fixed';
     popup.style.top = '50%';
     popup.style.left = '50%';
     popup.style.transform = 'translate(-50%, -50%)';
+
+    document.body.appendChild(popup);
+    currentPopup = popup;
 
     makeDraggable(popup, headerDiv);
 }

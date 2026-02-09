@@ -215,6 +215,43 @@
     }
 }
 
+/* Grammar Popup - Compact & Dynamic */
+.agp-grammar-popup {
+    width: auto;
+    height: auto;
+    min-width: 280px;
+    max-width: 400px;
+    min-height: auto;
+    max-height: 400px;
+}
+
+.agp-grammar-popup .agp-popup-body {
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.agp-grammar-popup .agp-popup-header {
+    padding: 12px 16px;
+}
+
+.agp-grammar-popup .agp-popup-title {
+    font-size: 14px;
+}
+
+.agp-grammar-popup .agp-suggestion-message {
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.agp-grammar-popup .agp-suggestions {
+    gap: 6px;
+}
+
+.agp-grammar-popup .agp-suggestion-value.clickable {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
 .agp-popup.agp-dragging {
     cursor: move;
     user-select: none;
@@ -329,6 +366,18 @@
     color: white;
     transform: translateY(-1px);
     box-shadow: var(--agp-shadow-sm);
+}
+
+.agp-empty-state {
+    padding: 12px;
+    text-align: center;
+    color: var(--agp-text-muted);
+    font-size: 13px;
+}
+
+.agp-grammar-popup .agp-empty-state {
+    padding: 8px;
+    font-size: 12px;
 }
 
 .agp-empty-state-compact {
