@@ -12,6 +12,13 @@
 # Allow docker-compose.yml in the docker folder
 !/docker/docker-compose.yml
 
+# Allow documentation files
+!/README.md
+!/REQUIREMENTS.md
+!/HELP.md
+!/ARCHITECTURE.md
+!/COPYING.txt
+
 # End of file
 out/
 
