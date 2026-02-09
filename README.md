@@ -20,6 +20,19 @@ AI Grammar Pro+ is an advanced browser extension that combines traditional gramm
 - **Real-time Suggestions**: Context menu integration for quick access.
 - **Customizable**: Toggle features, change themes, and adjust settings via the options page.
 
+## Screenshots
+
+| Grammar Check | AI Rephrase |
+|:---:|:---:|
+| ![Grammar Check](screenshots/action.png) | ![AI Rephrase](screenshots/popup.png) |
+| *Real-time grammar suggestions* | *AI-powered rephrasing options* |
+
+<p align="center">
+  <img src="screenshots/options.png" alt="Options Page" width="600"/>
+  <br>
+  <em>Comprehensive settings and customization</em>
+</p>
+
 ## System Architecture
 
 The project consists of three main components:
