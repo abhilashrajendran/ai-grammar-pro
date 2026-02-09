@@ -544,10 +544,9 @@ async function createAIPopup(textarea) {
 
     popup.appendChild(actionsDiv);
 
-    popup.style.position = 'fixed';
-    popup.style.top = '50%';
-    popup.style.left = '50%';
-    popup.style.transform = 'translate(-50%, -50%)';
+    popup.classList.add('agp-centered');
+    // Centering is now handled by .agp-centered class in CSS
+    // to avoid conflicts with entrance animation transforms
 
     document.body.appendChild(popup);
     currentPopup = popup;
@@ -756,6 +755,7 @@ function makeDraggable(element, handle) {
 
         element.style.transform = 'none';
         element.style.margin = '0';
+        element.classList.remove('agp-centered');
         element.classList.add('agp-dragging');
     });
 
