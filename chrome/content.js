@@ -1,6 +1,3 @@
-
-
-
 let checkTimer = null;
 let mirrorDiv = null;
 let currentMatches = [];
@@ -124,7 +121,7 @@ function sendMessage(message) {
 
 function isTextarea(element) {
     if (!element) return false;
-    
+
     // Check for textarea elements
     if (element.tagName === 'TEXTAREA' &&
         !element.disabled &&
@@ -133,55 +130,80 @@ function isTextarea(element) {
         element.offsetHeight > 0) {
         return true;
     }
-    
+
     // Check for contenteditable elements
     if ((element.isContentEditable || element.contentEditable === 'true') &&
         element.offsetWidth > 0 &&
         element.offsetHeight > 0) {
         return true;
     }
-    
+
     return false;
+}
+
+// Get the actual editable container (handles nested contenteditable structures)
+function getEditableContainer(element) {
+    if (!element) return null;
+
+    // If it's a textarea, return it directly
+    if (element.tagName === 'TEXTAREA') {
+        return element;
+    }
+
+    // For contenteditable, find the root contenteditable element
+    let current = element;
+    let lastContentEditable = null;
+
+    while (current && current !== document.body) {
+        if (current.contentEditable === 'true' || current.isContentEditable) {
+            lastContentEditable = current;
+        }
+        current = current.parentElement;
+    }
+
+    return lastContentEditable;
 }
 
 // Check if the text contains at least one complete valid sentence
 function hasValidSentence(text) {
     if (!text || typeof text !== 'string') return false;
-    
+
     const trimmedText = text.trim();
-    
+
     // Must meet minimum length requirement
     if (trimmedText.length < MIN_SENTENCE_LENGTH) return false;
-    
+
     // Check for sentence-ending punctuation
     const sentenceEndPattern = /[.!?](\s|$)/;
     if (!sentenceEndPattern.test(trimmedText)) return false;
-    
+
     // Split into sentences and check if at least one is substantial
     const sentences = trimmedText.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    
+
     // At least one sentence should have minimum word count (3+ words)
     const hasSubstantialSentence = sentences.some(sentence => {
         const words = sentence.trim().split(/\s+/).filter(w => w.length > 0);
         return words.length >= 3;
     });
-    
+
     return hasSubstantialSentence;
 }
 
 function getTextFromTextarea(textarea) {
     if (!textarea) return '';
-    
+
     // Handle textarea elements
     if (textarea.tagName === 'TEXTAREA') {
         return textarea.value || '';
     }
-    
+
     // Handle contenteditable elements
     if (textarea.isContentEditable || textarea.contentEditable === 'true') {
-        return textarea.textContent || '';
+        // Use textContent for contenteditable elements
+        // This works better with complex editors like TipTap/ProseMirror
+        return textarea.textContent || textarea.innerText || '';
     }
-    
+
     return '';
 }
 
@@ -204,11 +226,11 @@ function setTextInTextarea(textarea, text) {
         const selection = window.getSelection();
         const range = selection ? selection.getRangeAt(0) : null;
         const offset = range ? range.startOffset : 0;
-        
+
         textarea.textContent = text;
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
         textarea.dispatchEvent(new Event('change', { bubbles: true }));
-        
+
         // Try to restore cursor position
         try {
             if (textarea.firstChild) {
@@ -242,7 +264,7 @@ function createFloatingButton(textarea) {
     if (!textarea || !isTextarea(textarea)) return;
 
     const text = getTextFromTextarea(textarea);
-    
+
     // Only show button if there's a valid complete sentence
     if (!hasValidSentence(text)) {
         removeFloatingButton();
@@ -277,8 +299,8 @@ function positionFloatingButton(textarea) {
     if (!floatingButton || !textarea) return;
 
     const rect = textarea.getBoundingClientRect();
-    floatingButton.style.top = `${rect.top + window.scrollY + 8}px`;
-    floatingButton.style.left = `${rect.right + window.scrollX - 48}px`;
+    floatingButton.style.top = `${rect.top + window.scrollY}px`;
+    floatingButton.style.left = `${rect.right + window.scrollX - 30}px`;
 }
 
 function updateFloatingButton(errorCount) {
@@ -459,7 +481,7 @@ async function performCheck(textarea) {
         showToast('Please enter some text first', 'warning');
         return;
     }
-    
+
     // Validate that there's a complete sentence
     if (!hasValidSentence(text)) {
         showToast('Please enter a complete sentence', 'warning');
@@ -859,44 +881,50 @@ function makeDraggable(element, handle) {
 
 
 document.addEventListener('input', (e) => {
-    if (!isTextarea(e.target)) return;
-    currentTarget = e.target;
-    
+    const container = getEditableContainer(e.target);
+    if (!container || !isTextarea(container)) return;
+
+    currentTarget = container;
+
     // Update button visibility based on content
-    const text = getTextFromTextarea(e.target);
+    const text = getTextFromTextarea(container);
     if (hasValidSentence(text)) {
-        createFloatingButton(e.target);
+        createFloatingButton(container);
     } else {
         removeFloatingButton();
     }
-    
+
     clearTimeout(checkTimer);
-    checkTimer = setTimeout(() => checkText(e.target), userSettings?.checkDelay || DEBOUNCE_DELAY);
+    checkTimer = setTimeout(() => checkText(container), userSettings?.checkDelay || DEBOUNCE_DELAY);
 });
 
 document.addEventListener('focusin', (e) => {
-    if (!isTextarea(e.target)) return;
-    currentTarget = e.target;
-    
+    const container = getEditableContainer(e.target);
+    if (!container || !isTextarea(container)) return;
+
+    currentTarget = container;
+
     // Only create button if there's a valid sentence
-    const text = getTextFromTextarea(e.target);
+    const text = getTextFromTextarea(container);
     if (hasValidSentence(text)) {
-        createFloatingButton(e.target);
+        createFloatingButton(container);
     }
-    
-    observedTextareas.add(e.target);
+
+    observedTextareas.add(container);
 
     if (userSettings?.autoCheck && text.trim().length > 0) {
-        checkText(e.target);
+        checkText(container);
     }
 });
 
 document.addEventListener('focusout', (e) => {
-    if (!isTextarea(e.target)) return;
+    const container = getEditableContainer(e.target);
+    if (!container || !isTextarea(container)) return;
 
     setTimeout(() => {
         const popup = document.querySelector('.agp-popup');
-        if (!popup && document.activeElement !== e.target) {
+        const activeContainer = getEditableContainer(document.activeElement);
+        if (!popup && activeContainer !== container) {
             removeFloatingButton();
             clearMirror();
             currentTarget = null;
@@ -975,9 +1003,16 @@ const mutationObserver = new MutationObserver((mutations) => {
                     observedTextareas.add(node);
                 }
                 if (node.querySelectorAll) {
+                    // Check for textareas
                     node.querySelectorAll('textarea').forEach(ta => {
                         if (isTextarea(ta) && !observedTextareas.has(ta)) {
                             observedTextareas.add(ta);
+                        }
+                    });
+                    // Check for contenteditable elements
+                    node.querySelectorAll('[contenteditable="true"]').forEach(ce => {
+                        if (isTextarea(ce) && !observedTextareas.has(ce)) {
+                            observedTextareas.add(ce);
                         }
                     });
                 }
@@ -992,11 +1027,16 @@ mutationObserver.observe(document.body, {
 });
 
 window.addEventListener('load', () => {
+    // Check for textareas
     document.querySelectorAll('textarea').forEach(textarea => {
         if (isTextarea(textarea) && !observedTextareas.has(textarea)) {
             observedTextareas.add(textarea);
         }
     });
+    // Check for contenteditable elements
+    document.querySelectorAll('[contenteditable="true"]').forEach(ce => {
+        if (isTextarea(ce) && !observedTextareas.has(ce)) {
+            observedTextareas.add(ce);
+        }
+    });
 });
-
-
