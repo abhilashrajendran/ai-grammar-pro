@@ -16,6 +16,7 @@ let isCheckingInProgress = false;
 const observedTextareas = new WeakSet();
 const DEBOUNCE_DELAY = 1000;
 const MIN_TEXT_LENGTH = 3;
+const MIN_SENTENCE_LENGTH = 10; // Minimum characters for a valid sentence
 
 
 let isExtensionValid = true;
@@ -122,29 +123,106 @@ function sendMessage(message) {
 
 
 function isTextarea(element) {
-    return element &&
-        element.tagName === 'TEXTAREA' &&
+    if (!element) return false;
+    
+    // Check for textarea elements
+    if (element.tagName === 'TEXTAREA' &&
         !element.disabled &&
         !element.readOnly &&
         element.offsetWidth > 0 &&
-        element.offsetHeight > 0;
+        element.offsetHeight > 0) {
+        return true;
+    }
+    
+    // Check for contenteditable elements
+    if ((element.isContentEditable || element.contentEditable === 'true') &&
+        element.offsetWidth > 0 &&
+        element.offsetHeight > 0) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Check if the text contains at least one complete valid sentence
+function hasValidSentence(text) {
+    if (!text || typeof text !== 'string') return false;
+    
+    const trimmedText = text.trim();
+    
+    // Must meet minimum length requirement
+    if (trimmedText.length < MIN_SENTENCE_LENGTH) return false;
+    
+    // Check for sentence-ending punctuation
+    const sentenceEndPattern = /[.!?](\s|$)/;
+    if (!sentenceEndPattern.test(trimmedText)) return false;
+    
+    // Split into sentences and check if at least one is substantial
+    const sentences = trimmedText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    
+    // At least one sentence should have minimum word count (3+ words)
+    const hasSubstantialSentence = sentences.some(sentence => {
+        const words = sentence.trim().split(/\s+/).filter(w => w.length > 0);
+        return words.length >= 3;
+    });
+    
+    return hasSubstantialSentence;
 }
 
 function getTextFromTextarea(textarea) {
-    return textarea?.value || '';
+    if (!textarea) return '';
+    
+    // Handle textarea elements
+    if (textarea.tagName === 'TEXTAREA') {
+        return textarea.value || '';
+    }
+    
+    // Handle contenteditable elements
+    if (textarea.isContentEditable || textarea.contentEditable === 'true') {
+        return textarea.textContent || '';
+    }
+    
+    return '';
 }
 
 function setTextInTextarea(textarea, text) {
     if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    textarea.value = text;
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
-    textarea.dispatchEvent(new Event('change', { bubbles: true }));
+    // Handle textarea elements
+    if (textarea.tagName === 'TEXTAREA') {
+        const start = textarea.selectionStart;
+        textarea.value = text;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
 
-    try {
-        textarea.setSelectionRange(start, start);
-    } catch (e) { }
+        try {
+            textarea.setSelectionRange(start, start);
+        } catch (e) { }
+    }
+    // Handle contenteditable elements
+    else if (textarea.isContentEditable || textarea.contentEditable === 'true') {
+        const selection = window.getSelection();
+        const range = selection ? selection.getRangeAt(0) : null;
+        const offset = range ? range.startOffset : 0;
+        
+        textarea.textContent = text;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // Try to restore cursor position
+        try {
+            if (textarea.firstChild) {
+                const newRange = document.createRange();
+                const newSelection = window.getSelection();
+                const textNode = textarea.firstChild;
+                const safeOffset = Math.min(offset, textNode.textContent.length);
+                newRange.setStart(textNode, safeOffset);
+                newRange.collapse(true);
+                newSelection.removeAllRanges();
+                newSelection.addRange(newRange);
+            }
+        } catch (e) { }
+    }
 }
 
 function replaceTextRange(textarea, offset, length, replacement) {
@@ -162,6 +240,14 @@ function replaceTextRange(textarea, offset, length, replacement) {
 
 function createFloatingButton(textarea) {
     if (!textarea || !isTextarea(textarea)) return;
+
+    const text = getTextFromTextarea(textarea);
+    
+    // Only show button if there's a valid complete sentence
+    if (!hasValidSentence(text)) {
+        removeFloatingButton();
+        return;
+    }
 
     if (floatingButton && floatingButton._textarea === textarea) {
         positionFloatingButton(textarea);
@@ -371,6 +457,12 @@ async function performCheck(textarea) {
 
     if (text.trim().length < MIN_TEXT_LENGTH) {
         showToast('Please enter some text first', 'warning');
+        return;
+    }
+    
+    // Validate that there's a complete sentence
+    if (!hasValidSentence(text)) {
+        showToast('Please enter a complete sentence', 'warning');
         return;
     }
 
@@ -769,6 +861,15 @@ function makeDraggable(element, handle) {
 document.addEventListener('input', (e) => {
     if (!isTextarea(e.target)) return;
     currentTarget = e.target;
+    
+    // Update button visibility based on content
+    const text = getTextFromTextarea(e.target);
+    if (hasValidSentence(text)) {
+        createFloatingButton(e.target);
+    } else {
+        removeFloatingButton();
+    }
+    
     clearTimeout(checkTimer);
     checkTimer = setTimeout(() => checkText(e.target), userSettings?.checkDelay || DEBOUNCE_DELAY);
 });
@@ -776,10 +877,16 @@ document.addEventListener('input', (e) => {
 document.addEventListener('focusin', (e) => {
     if (!isTextarea(e.target)) return;
     currentTarget = e.target;
-    createFloatingButton(e.target);
+    
+    // Only create button if there's a valid sentence
+    const text = getTextFromTextarea(e.target);
+    if (hasValidSentence(text)) {
+        createFloatingButton(e.target);
+    }
+    
     observedTextareas.add(e.target);
 
-    if (userSettings?.autoCheck && getTextFromTextarea(e.target).trim().length > 0) {
+    if (userSettings?.autoCheck && text.trim().length > 0) {
         checkText(e.target);
     }
 });
