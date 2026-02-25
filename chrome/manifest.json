@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "AI Grammar Pro+",
-  "version": "1.0.0",
-  "description": "Advanced grammar checking with AI-powered rephrasing, style adaptation, and real-time suggestions",
+  "version": "2.0.0",
+  "description": "Professional inline grammar checking with AI-powered rephrasing. Scroll-accurate underlines like Word.",
   "permissions": [
     "activeTab",
     "storage",
