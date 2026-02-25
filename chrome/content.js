@@ -260,6 +260,11 @@ function normalizeOverlayDOM(div) {
 
 /**
  * Moves the cursor to `offset` characters into element's textContent.
+ *
+ * IMPORTANT: we avoid calling sel.removeAllRanges() if the selection is
+ * already at the correct position.  removeAllRanges() can fire a blur event
+ * on the focused element in some Chrome builds, which would trigger our
+ * focusout handler and hide the floating button unexpectedly.
  */
 function setCursorOffset(el, offset) {
   if (offset < 0) return;
@@ -268,8 +273,15 @@ function setCursorOffset(el, offset) {
   let node;
   while ((node = walker.nextNode())) {
     if (remaining <= node.nodeValue.length) {
-      const range = document.createRange();
       const sel = window.getSelection();
+      // If selection is already exactly here, do nothing to avoid spurious blur
+      if (sel && sel.rangeCount === 1) {
+        const cur = sel.getRangeAt(0);
+        if (cur.startContainer === node &&
+            cur.startOffset === remaining &&
+            cur.collapsed) return;
+      }
+      const range = document.createRange();
       range.setStart(node, remaining);
       range.collapse(true);
       sel.removeAllRanges();
@@ -279,8 +291,8 @@ function setCursorOffset(el, offset) {
     remaining -= node.nodeValue.length;
   }
   // Fallback — put cursor at end
-  const range = document.createRange();
   const sel = window.getSelection();
+  const range = document.createRange();
   range.selectNodeContents(el);
   range.collapse(false);
   sel.removeAllRanges();
@@ -1208,15 +1220,29 @@ document.addEventListener('focusin', (e) => {
 }, true);
 
 document.addEventListener('focusout', (e) => {
+  // Use a longer delay to survive micro-blurs caused by DOM manipulation
+  // (e.g. normalizeOverlayDOM calling removeAllRanges during input events).
   setTimeout(() => {
     const ae = document.activeElement;
-    // Keep UI if focus moved to our overlay, tooltip, or panel
-    if (ae && (ae.getAttribute('data-agp-overlay') ||
-               ae.getAttribute('data-agp-ui') ||
-               ae.closest('[data-agp-ui]'))) return;
+
+    // Keep everything alive if focus is on ANY of our UI elements
+    if (ae && (
+      ae.getAttribute('data-agp-overlay') ||
+      ae.getAttribute('data-agp-ui')      ||
+      ae.closest('[data-agp-ui]')         ||
+      ae.closest('[data-agp-overlay]')
+    )) return;
+
+    // Keep alive if ae is body/null and currentEl still has meaningful text —
+    // this is a micro-blur from DOM normalization, not a real focus departure.
+    if ((!ae || ae === document.body) && currentEl) {
+      const text = currentEl.tagName === 'TEXTAREA'
+        ? (getOverlay(currentEl)?.getText() ?? currentEl.value)
+        : (currentEl.textContent || '');
+      if (hasSentence(text)) return;   // user is mid-sentence, stay visible
+    }
 
     if (currentEl && ae !== currentEl && !currentEl.contains(ae)) {
-      // Check if focus moved to our overlay for THIS textarea
       const ov = currentEl.tagName === 'TEXTAREA' ? getOverlay(currentEl) : null;
       if (ov && ae === ov.div) return;
 
@@ -1224,19 +1250,38 @@ document.addEventListener('focusout', (e) => {
       ErrorTooltip.hide();
       currentEl = null;
     }
-  }, 150);
+  }, 300);   // 300ms — long enough to outlast any DOM-manipulation micro-blur
 }, true);
 
-// ── Input events: schedule grammar check ──
+// Helper: does the text contain at least one meaningful sentence?
+function hasSentence(text) {
+  if (!text || text.trim().length < 8) return false;
+  // Must have a word (not just punctuation/spaces)
+  return /\w{2,}/.test(text.trim());
+}
+
+// ── Input events: normalize (overlay), re-show button if enough text, schedule check ──
 document.addEventListener('input', (e) => {
   const target = e.target;
+
   if (target.getAttribute('data-agp-overlay')) {
-    // Overlay typing → check its associated textarea
+    // Find the textarea this overlay belongs to
     const ta = [...document.querySelectorAll('textarea[data-agp-hidden]')]
       .find(t => getOverlay(t)?.div === target);
-    if (ta) { scheduleCheck(ta); return; }
+    if (ta) {
+      // Show/keep the floating button whenever there's meaningful text
+      if (hasSentence(getOverlayText(target))) {
+        FloatingButton.attach(ta);
+      }
+      scheduleCheck(ta);
+    }
+    return;
   }
+
   if (isEditableContenteditable(target)) {
+    if (hasSentence(target.textContent)) {
+      FloatingButton.attach(target);
+    }
     scheduleCheck(target);
   }
 }, true);
